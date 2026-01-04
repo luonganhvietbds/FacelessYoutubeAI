@@ -1,15 +1,15 @@
 'use client';
 
-// Videlix AI - Profile Selector Component
+// Videlix AI - Profile Selector Component with Real-time Firebase Sync
 
 import { useState, useEffect } from 'react';
-import { BookOpen, GraduationCap, Video, Star, Newspaper, ChevronDown } from 'lucide-react';
+import { BookOpen, GraduationCap, Video, Star, Newspaper, ChevronDown, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { usePipelineStore } from '@/lib/store/pipelineStore';
-import { PromptProfile, BilingualText } from '@/types';
+import { BilingualText } from '@/types';
+import { subscribeToProfiles, FirebaseProfile } from '@/lib/firebase/firestore';
 
-const iconMap = {
+const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
     BookOpen,
     GraduationCap,
     Video,
@@ -31,7 +31,7 @@ interface ProfileCardProps {
 }
 
 function ProfileCard({ profile, isSelected, language, onClick }: ProfileCardProps) {
-    const Icon = iconMap[profile.icon as keyof typeof iconMap] || BookOpen;
+    const Icon = iconMap[profile.icon] || BookOpen;
 
     return (
         <button
@@ -87,23 +87,34 @@ export function ProfileSelector() {
     }[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isExpanded, setIsExpanded] = useState(true);
+    const [isRealtime, setIsRealtime] = useState(false);
 
     useEffect(() => {
-        async function loadProfiles() {
-            try {
-                const response = await fetch('/api/generate');
-                const data = await response.json();
-                if (data.success) {
-                    setProfiles(data.profiles);
-                }
-            } catch (error) {
-                console.error('Failed to load profiles:', error);
-            } finally {
-                setIsLoading(false);
+        // Subscribe to real-time updates from Firestore
+        const unsubscribe = subscribeToProfiles((firebaseProfiles: FirebaseProfile[]) => {
+            // Filter only active profiles and transform for UI
+            const activeProfiles = firebaseProfiles
+                .filter(p => p.isActive)
+                .map(p => ({
+                    id: p.id,
+                    name: p.name,
+                    description: p.description,
+                    icon: p.icon,
+                    category: p.category,
+                }));
+
+            setProfiles(activeProfiles);
+            setIsLoading(false);
+            setIsRealtime(true);
+
+            // Auto-select first profile if none selected
+            if (activeProfiles.length > 0 && !profileId) {
+                setProfile(activeProfiles[0].id);
             }
-        }
-        loadProfiles();
-    }, []);
+        });
+
+        return () => unsubscribe();
+    }, [profileId, setProfile]);
 
     const selectedProfile = profiles.find(p => p.id === profileId);
 
@@ -113,14 +124,15 @@ export function ProfileSelector() {
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="flex items-center justify-between w-full text-left"
             >
-                <div>
+                <div className="flex items-center gap-2">
                     <h2 className="text-sm font-medium text-zinc-300">
                         {language === 'vi' ? 'Phong cách Video' : 'Video Style'}
                     </h2>
-                    {selectedProfile && !isExpanded && (
-                        <p className="text-xs text-blue-400 mt-0.5">
-                            {selectedProfile.name[language]}
-                        </p>
+                    {isRealtime && (
+                        <div className="flex items-center gap-1 px-1.5 py-0.5 bg-emerald-500/10 border border-emerald-500/30 rounded text-[10px] text-emerald-400">
+                            <RefreshCw className="w-2.5 h-2.5" />
+                            Live
+                        </div>
                     )}
                 </div>
                 <ChevronDown className={cn(
@@ -129,6 +141,12 @@ export function ProfileSelector() {
                 )} />
             </button>
 
+            {selectedProfile && !isExpanded && (
+                <p className="text-xs text-blue-400">
+                    {selectedProfile.name[language]}
+                </p>
+            )}
+
             {isExpanded && (
                 <div className="space-y-2">
                     {isLoading ? (
@@ -136,6 +154,12 @@ export function ProfileSelector() {
                             {[1, 2, 3].map(i => (
                                 <div key={i} className="h-20 rounded-lg bg-zinc-800 animate-pulse" />
                             ))}
+                        </div>
+                    ) : profiles.length === 0 ? (
+                        <div className="text-center py-8 text-zinc-500 text-sm">
+                            {language === 'vi'
+                                ? 'Chưa có profile nào. Hãy thêm trong Admin Panel.'
+                                : 'No profiles yet. Add some in Admin Panel.'}
                         </div>
                     ) : (
                         profiles.map(profile => (

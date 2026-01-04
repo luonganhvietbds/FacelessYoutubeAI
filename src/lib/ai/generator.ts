@@ -1,8 +1,41 @@
-// Videlix AI - Gemini AI Service with Key Rotation
-
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { PipelineStep, Language, VideoIdea, OutlineSection, ScriptContent, VideoMetadata } from '@/types';
 import profiles from '@/lib/prompts/profiles.json';
+import { getProfileById, FirebaseProfile } from '@/lib/firebase/firestore';
+
+// Cache for Firebase profiles to reduce reads
+const profileCache = new Map<string, { profile: FirebaseProfile | null; timestamp: number }>();
+const CACHE_TTL = 60000; // 1 minute cache
+
+async function getSystemPrompt(profileId: string, step: PipelineStep, language: Language): Promise<string> {
+    // Try to get from Firestore first
+    try {
+        const cached = profileCache.get(profileId);
+        const now = Date.now();
+
+        let firebaseProfile: FirebaseProfile | null = null;
+
+        if (cached && now - cached.timestamp < CACHE_TTL) {
+            firebaseProfile = cached.profile;
+        } else {
+            firebaseProfile = await getProfileById(profileId);
+            profileCache.set(profileId, { profile: firebaseProfile, timestamp: now });
+        }
+
+        if (firebaseProfile && firebaseProfile.prompts && firebaseProfile.prompts[step]) {
+            return firebaseProfile.prompts[step][language];
+        }
+    } catch (error) {
+        console.warn('Failed to fetch profile from Firestore, using fallback:', error);
+    }
+
+    // Fallback to static JSON
+    const profile = profiles.profiles.find(p => p.id === profileId);
+    if (!profile) {
+        throw new Error(`Profile not found: ${profileId}`);
+    }
+    return profile.prompts[step][language];
+}
 
 // API Keys with rotation
 const API_KEYS = [
@@ -62,14 +95,6 @@ export interface GenerateParams {
         script?: ScriptContent;
     };
     modifier?: 'shorter' | 'longer' | 'funnier' | 'professional' | 'default';
-}
-
-function getSystemPrompt(profileId: string, step: PipelineStep, language: Language): string {
-    const profile = profiles.profiles.find(p => p.id === profileId);
-    if (!profile) {
-        throw new Error(`Profile not found: ${profileId}`);
-    }
-    return profile.prompts[step][language];
 }
 
 function buildUserPrompt(params: GenerateParams): string {
@@ -192,7 +217,7 @@ export async function generate(params: GenerateParams): Promise<VideoIdea[] | Ou
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
             const model = genAI.getGenerativeModel({
-                model: 'gemini-2.0-flash-lite',
+                model: 'gemini-2.5-flash',
                 generationConfig: {
                     temperature: 0.8,
                     topP: 0.95,
@@ -200,7 +225,7 @@ export async function generate(params: GenerateParams): Promise<VideoIdea[] | Ou
                 },
             });
 
-            const systemPrompt = getSystemPrompt(params.profileId, params.step, params.language);
+            const systemPrompt = await getSystemPrompt(params.profileId, params.step, params.language);
             const userPrompt = buildUserPrompt(params);
 
             const result = await model.generateContent([
