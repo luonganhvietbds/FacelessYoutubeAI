@@ -226,12 +226,14 @@ const MODELS = [
 
 export async function generate(params: GenerateParams): Promise<VideoIdea[] | OutlineSection[] | ScriptContent | VideoMetadata> {
     const userKeys = params.userApiKeys || [];
-    const allKeys = [...userKeys]; // User keys first
 
-    // Add system keys only if no user keys or as final fallback
-    if (userKeys.length === 0) {
-        allKeys.push(...API_KEYS);
-    }
+    // Combine user keys (priority) + system keys (fallback)
+    const allKeys = [...userKeys, ...API_KEYS];
+
+    // Remove duplicates
+    const uniqueKeys = [...new Set(allKeys)];
+
+    console.log(`📦 Total keys available: ${uniqueKeys.length} (${userKeys.length} user + ${API_KEYS.length} system)`);
 
     let lastError: Error | null = null;
     const triedKeys = new Set<string>();
@@ -241,7 +243,7 @@ export async function generate(params: GenerateParams): Promise<VideoIdea[] | Ou
         console.log(`🔄 Trying model: ${modelName}`);
 
         // Try each key for this model
-        for (const apiKey of allKeys) {
+        for (const apiKey of uniqueKeys) {
             // Skip already tried keys for this model
             const keyId = `${modelName}:${apiKey.slice(-8)}`;
             if (triedKeys.has(keyId)) continue;
