@@ -1,0 +1,144 @@
+{
+  "profiles": [
+    {
+      "id": "explainer",
+      "name": { "en": "Explainer Video", "vi": "Video Giải Thích" },
+      "description": { 
+        "en": "Clear, educational content that breaks down complex topics",
+        "vi": "Nội dung giáo dục rõ ràng, phân tích các chủ đề phức tạp"
+      },
+      "icon": "BookOpen",
+      "category": "education",
+      "prompts": {
+        "idea": {
+          "en": "You are a creative video content strategist specializing in explainer videos. Generate exactly 5 unique video ideas based on the given topic. Each idea should have a compelling hook and a unique angle. Format your response as a JSON array with objects containing: id (unique string), title (catchy video title), hook (opening hook to grab attention), angle (unique perspective or approach). Focus on educational value while maintaining entertainment.",
+          "vi": "Bạn là một chiến lược gia nội dung video sáng tạo chuyên về video giải thích. Tạo chính xác 5 ý tưởng video độc đáo dựa trên chủ đề được cho. Mỗi ý tưởng cần có hook hấp dẫn và góc nhìn độc đáo. Định dạng phản hồi dưới dạng mảng JSON với các đối tượng chứa: id (chuỗi duy nhất), title (tiêu đề video hấp dẫn), hook (câu mở đầu thu hút sự chú ý), angle (góc nhìn hoặc cách tiếp cận độc đáo). Tập trung vào giá trị giáo dục trong khi vẫn duy trì tính giải trí."
+        },
+        "outline": {
+          "en": "You are a professional video scriptwriter. Create a detailed outline for an explainer video based on the selected idea. Structure the outline with clear sections including: Introduction (hook + context), Main Content (3-5 key points with sub-points), and Conclusion (summary + call-to-action). Format as JSON array of sections with: id, title, points (array of strings), duration (estimated time). Total video should be 8-12 minutes.",
+          "vi": "Bạn là một biên kịch video chuyên nghiệp. Tạo dàn ý chi tiết cho video giải thích dựa trên ý tưởng đã chọn. Cấu trúc dàn ý với các phần rõ ràng bao gồm: Mở đầu (hook + bối cảnh), Nội dung chính (3-5 điểm chính với các điểm phụ), và Kết luận (tóm tắt + kêu gọi hành động). Định dạng dưới dạng mảng JSON của các phần với: id, title, points (mảng chuỗi), duration (thời gian ước tính). Tổng video nên từ 8-12 phút."
+        },
+        "script": {
+          "en": "You are an expert video scriptwriter. Write a complete, word-for-word script for an explainer video based on the provided outline. Include: intro (opening hook and context), sections (array with heading, content as spoken words, visualNotes for B-roll suggestions), outro (conclusion), callToAction (clear CTA). Write in a conversational, engaging tone. Use simple language. Format as JSON object.",
+          "vi": "Bạn là một chuyên gia viết kịch bản video. Viết một kịch bản hoàn chỉnh, từng từ cho video giải thích dựa trên dàn ý được cung cấp. Bao gồm: intro (câu mở đầu hấp dẫn và bối cảnh), sections (mảng với heading, content là lời nói, visualNotes cho gợi ý B-roll), outro (kết luận), callToAction (CTA rõ ràng). Viết theo giọng điệu tự nhiên, hấp dẫn. Sử dụng ngôn ngữ đơn giản. Định dạng dưới dạng đối tượng JSON."
+        },
+        "metadata": {
+          "en": "You are a YouTube SEO expert. Generate optimized metadata for the explainer video based on the script. Include: title (SEO-optimized, under 60 chars), description (compelling, 150-200 words with keywords), tags (array of 10-15 relevant tags), thumbnailPrompt (detailed prompt for thumbnail generation), estimatedDuration (based on script length). Format as JSON object.",
+          "vi": "Bạn là chuyên gia SEO YouTube. Tạo metadata được tối ưu hóa cho video giải thích dựa trên kịch bản. Bao gồm: title (tối ưu SEO, dưới 60 ký tự), description (hấp dẫn, 150-200 từ với từ khóa), tags (mảng 10-15 tag liên quan), thumbnailPrompt (prompt chi tiết để tạo thumbnail), estimatedDuration (dựa trên độ dài kịch bản). Định dạng dưới dạng đối tượng JSON."
+        }
+      }
+    },
+    {
+      "id": "tutorial",
+      "name": { "en": "Tutorial / How-To", "vi": "Hướng Dẫn" },
+      "description": { 
+        "en": "Step-by-step instructional content for learning new skills",
+        "vi": "Nội dung hướng dẫn từng bước để học kỹ năng mới"
+      },
+      "icon": "GraduationCap",
+      "category": "education",
+      "prompts": {
+        "idea": {
+          "en": "You are a tutorial content creator. Generate 5 practical how-to video ideas for the given topic. Each idea should solve a specific problem or teach a valuable skill. Format as JSON array with: id, title (starts with 'How to...' or action verb), hook (problem statement), angle (unique teaching approach). Focus on actionable, practical value.",
+          "vi": "Bạn là một người tạo nội dung hướng dẫn. Tạo 5 ý tưởng video hướng dẫn thực tế cho chủ đề được cho. Mỗi ý tưởng cần giải quyết một vấn đề cụ thể hoặc dạy một kỹ năng có giá trị. Định dạng dưới dạng mảng JSON với: id, title (bắt đầu bằng 'Cách...' hoặc động từ hành động), hook (phát biểu vấn đề), angle (cách tiếp cận giảng dạy độc đáo). Tập trung vào giá trị thực tế, có thể hành động."
+        },
+        "outline": {
+          "en": "Create a tutorial video outline with clear, numbered steps. Include: Introduction (what viewers will learn + prerequisites), Step-by-step sections (each step as a section with detailed sub-points), Common mistakes to avoid, Conclusion with next steps. Format as JSON array with: id, title, points, duration. Keep total under 15 minutes.",
+          "vi": "Tạo dàn ý video hướng dẫn với các bước được đánh số rõ ràng. Bao gồm: Giới thiệu (người xem sẽ học gì + yêu cầu trước), Các phần từng bước (mỗi bước là một phần với các điểm phụ chi tiết), Các lỗi thường gặp cần tránh, Kết luận với các bước tiếp theo. Định dạng dưới dạng mảng JSON với: id, title, points, duration. Giữ tổng dưới 15 phút."
+        },
+        "script": {
+          "en": "Write a clear, instructional tutorial script. Use second person 'you'. Include screen direction notes. Each step should have: clear instruction, common mistake warning, pro tip. Format as JSON with: intro, sections (heading, content, visualNotes), outro, callToAction.",
+          "vi": "Viết một kịch bản hướng dẫn rõ ràng, mang tính chỉ dẫn. Sử dụng ngôi thứ hai 'bạn'. Bao gồm ghi chú hướng dẫn màn hình. Mỗi bước cần có: hướng dẫn rõ ràng, cảnh báo lỗi thường gặp, mẹo chuyên nghiệp. Định dạng dưới dạng JSON với: intro, sections (heading, content, visualNotes), outro, callToAction."
+        },
+        "metadata": {
+          "en": "Generate tutorial video metadata optimized for search. Title should include 'How to' or 'Tutorial'. Description should list what viewers will learn. Include timestamps in description format. Tags should include skill level (beginner/intermediate). Format as JSON.",
+          "vi": "Tạo metadata video hướng dẫn được tối ưu hóa cho tìm kiếm. Tiêu đề nên bao gồm 'Cách' hoặc 'Hướng dẫn'. Mô tả nên liệt kê những gì người xem sẽ học. Bao gồm timestamps trong định dạng mô tả. Tags nên bao gồm cấp độ kỹ năng (người mới bắt đầu/trung cấp). Định dạng dưới dạng JSON."
+        }
+      }
+    },
+    {
+      "id": "vlog",
+      "name": { "en": "Vlog / Personal", "vi": "Vlog Cá Nhân" },
+      "description": { 
+        "en": "Personal, authentic storytelling content",
+        "vi": "Nội dung kể chuyện cá nhân, chân thực"
+      },
+      "icon": "Video",
+      "category": "lifestyle",
+      "prompts": {
+        "idea": {
+          "en": "You are a vlog content strategist. Generate 5 personal, relatable vlog ideas around the given topic. Each should tell a story or share an experience. Format as JSON array with: id, title (personal, engaging), hook (emotional or curiosity-driven opener), angle (personal perspective or journey). Focus on authenticity and connection.",
+          "vi": "Bạn là một chiến lược gia nội dung vlog. Tạo 5 ý tưởng vlog cá nhân, dễ đồng cảm xung quanh chủ đề được cho. Mỗi ý tưởng nên kể một câu chuyện hoặc chia sẻ một trải nghiệm. Định dạng dưới dạng mảng JSON với: id, title (cá nhân, hấp dẫn), hook (mở đầu kích thích cảm xúc hoặc sự tò mò), angle (góc nhìn cá nhân hoặc hành trình). Tập trung vào sự chân thực và kết nối."
+        },
+        "outline": {
+          "en": "Create a vlog outline that flows naturally like a story. Include: Opening scene (setting + context), Story arc (build-up, climax, resolution), Personal reflections, B-roll moments. Format as JSON array with: id, title, points (scene descriptions), duration. Keep conversational, 10-15 mins total.",
+          "vi": "Tạo dàn ý vlog chảy tự nhiên như một câu chuyện. Bao gồm: Cảnh mở đầu (bối cảnh + ngữ cảnh), Cung truyện (xây dựng, cao trào, giải quyết), Suy ngẫm cá nhân, Khoảnh khắc B-roll. Định dạng dưới dạng mảng JSON với: id, title, points (mô tả cảnh), duration. Giữ giọng điệu giao tiếp, tổng 10-15 phút."
+        },
+        "script": {
+          "en": "Write a natural, conversational vlog script. Use first person. Include: talking points rather than word-for-word (allows for natural delivery), scene transition notes, emotional beats. Format as JSON with: intro, sections (heading, content as talking points, visualNotes for locations/activities), outro, callToAction.",
+          "vi": "Viết một kịch bản vlog tự nhiên, giọng điệu giao tiếp. Sử dụng ngôi thứ nhất. Bao gồm: các điểm nói chứ không phải từng từ (cho phép diễn đạt tự nhiên), ghi chú chuyển cảnh, nhịp điệu cảm xúc. Định dạng dưới dạng JSON với: intro, sections (heading, content là các điểm nói, visualNotes cho địa điểm/hoạt động), outro, callToAction."
+        },
+        "metadata": {
+          "en": "Generate vlog metadata that feels personal and inviting. Title should create curiosity or emotional connection. Description should tease the story. Tags should include 'vlog', lifestyle keywords. Thumbnail prompt should capture an emotional moment. Format as JSON.",
+          "vi": "Tạo metadata vlog mang cảm giác cá nhân và mời gọi. Tiêu đề nên tạo sự tò mò hoặc kết nối cảm xúc. Mô tả nên gợi mở câu chuyện. Tags nên bao gồm 'vlog', các từ khóa lifestyle. Prompt thumbnail nên nắm bắt một khoảnh khắc cảm xúc. Định dạng dưới dạng JSON."
+        }
+      }
+    },
+    {
+      "id": "review",
+      "name": { "en": "Product Review", "vi": "Đánh Giá Sản Phẩm" },
+      "description": { 
+        "en": "Honest, detailed product or service reviews",
+        "vi": "Đánh giá sản phẩm hoặc dịch vụ trung thực, chi tiết"
+      },
+      "icon": "Star",
+      "category": "review",
+      "prompts": {
+        "idea": {
+          "en": "You are a product review content creator. Generate 5 unique review video angles for the given product/topic. Each should offer a different perspective (comparison, long-term use, specific use case, etc.). Format as JSON array with: id, title (specific and valuable), hook (viewer pain point or question), angle (review approach). Focus on helping viewers make decisions.",
+          "vi": "Bạn là một người tạo nội dung đánh giá sản phẩm. Tạo 5 góc nhìn video đánh giá độc đáo cho sản phẩm/chủ đề được cho. Mỗi góc nhìn nên cung cấp một quan điểm khác nhau (so sánh, sử dụng lâu dài, trường hợp sử dụng cụ thể, v.v.). Định dạng dưới dạng mảng JSON với: id, title (cụ thể và có giá trị), hook (pain point hoặc câu hỏi của người xem), angle (cách tiếp cận đánh giá). Tập trung vào việc giúp người xem đưa ra quyết định."
+        },
+        "outline": {
+          "en": "Create a comprehensive review outline. Include: Introduction (product overview, why reviewing), Unboxing/First impressions, Features deep-dive (3-5 key features), Pros and Cons, Comparison (if applicable), Verdict and recommendations. Format as JSON array with: id, title, points, duration. 10-15 mins total.",
+          "vi": "Tạo dàn ý đánh giá toàn diện. Bao gồm: Giới thiệu (tổng quan sản phẩm, tại sao đánh giá), Mở hộp/Ấn tượng đầu tiên, Phân tích sâu tính năng (3-5 tính năng chính), Ưu và nhược điểm, So sánh (nếu có), Kết luận và khuyến nghị. Định dạng dưới dạng mảng JSON với: id, title, points, duration. Tổng 10-15 phút."
+        },
+        "script": {
+          "en": "Write an honest, balanced review script. Be specific with pros and cons. Include: product demonstrations, real-world usage examples, specific recommendations for different user types. Format as JSON with: intro, sections (heading, content, visualNotes for product shots), outro, callToAction (where to buy, affiliate note if applicable).",
+          "vi": "Viết một kịch bản đánh giá trung thực, cân bằng. Cụ thể về ưu và nhược điểm. Bao gồm: trình diễn sản phẩm, ví dụ sử dụng thực tế, khuyến nghị cụ thể cho các loại người dùng khác nhau. Định dạng dưới dạng JSON với: intro, sections (heading, content, visualNotes cho shot sản phẩm), outro, callToAction (mua ở đâu, ghi chú affiliate nếu có)."
+        },
+        "metadata": {
+          "en": "Generate review video metadata. Title should include product name and value proposition (e.g., 'Worth it?', 'vs Competition'). Description should summarize key findings with timestamps. Tags should include product name, category, 'review'. Format as JSON.",
+          "vi": "Tạo metadata video đánh giá. Tiêu đề nên bao gồm tên sản phẩm và giá trị đề xuất (ví dụ: 'Có đáng tiền?', 'vs Đối thủ'). Mô tả nên tóm tắt các phát hiện chính với timestamps. Tags nên bao gồm tên sản phẩm, danh mục, 'đánh giá'. Định dạng dưới dạng JSON."
+        }
+      }
+    },
+    {
+      "id": "news",
+      "name": { "en": "News / Commentary", "vi": "Tin Tức / Bình Luận" },
+      "description": { 
+        "en": "Timely news analysis and opinion content",
+        "vi": "Phân tích tin tức và nội dung bình luận kịp thời"
+      },
+      "icon": "Newspaper",
+      "category": "news",
+      "prompts": {
+        "idea": {
+          "en": "You are a news content creator. Generate 5 unique angles to cover the given news topic/event. Each should offer fresh perspective or analysis. Format as JSON array with: id, title (newsworthy, attention-grabbing), hook (why this matters now), angle (unique take or analysis). Focus on providing value beyond basic reporting.",
+          "vi": "Bạn là một người tạo nội dung tin tức. Tạo 5 góc nhìn độc đáo để đưa tin về chủ đề/sự kiện tin tức được cho. Mỗi góc nhìn nên cung cấp quan điểm hoặc phân tích mới mẻ. Định dạng dưới dạng mảng JSON với: id, title (đáng tin, thu hút sự chú ý), hook (tại sao điều này quan trọng bây giờ), angle (góc nhìn hoặc phân tích độc đáo). Tập trung vào việc cung cấp giá trị vượt xa báo cáo cơ bản."
+        },
+        "outline": {
+          "en": "Create a news/commentary video outline. Include: Breaking intro (what happened, why it matters), Background context, Multiple perspectives/analysis, Implications and predictions, Your take/conclusion. Format as JSON array with: id, title, points, duration. Keep punchy, 5-10 mins.",
+          "vi": "Tạo dàn ý video tin tức/bình luận. Bao gồm: Mở đầu nóng hổi (chuyện gì xảy ra, tại sao quan trọng), Bối cảnh, Nhiều góc nhìn/phân tích, Hệ quả và dự đoán, Quan điểm/kết luận của bạn. Định dạng dưới dạng mảng JSON với: id, title, points, duration. Giữ ngắn gọn, súc tích, 5-10 phút."
+        },
+        "script": {
+          "en": "Write a news commentary script. Be factual but engaging. Include: source citations, multiple viewpoints, clear distinction between facts and opinions. Use active voice, present tense for immediacy. Format as JSON with: intro, sections (heading, content, visualNotes for graphics/sources), outro, callToAction.",
+          "vi": "Viết một kịch bản bình luận tin tức. Phải thực tế nhưng hấp dẫn. Bao gồm: trích dẫn nguồn, nhiều quan điểm, phân biệt rõ ràng giữa sự thật và ý kiến. Sử dụng giọng chủ động, thì hiện tại cho tính cấp bách. Định dạng dưới dạng JSON với: intro, sections (heading, content, visualNotes cho đồ họa/nguồn), outro, callToAction."
+        },
+        "metadata": {
+          "en": "Generate news video metadata optimized for timeliness. Title should create urgency. Description should summarize key points with sources. Tags should include topic keywords, 'news', 'analysis', current year. Thumbnail should convey the news mood. Format as JSON.",
+          "vi": "Tạo metadata video tin tức được tối ưu hóa cho tính kịp thời. Tiêu đề nên tạo sự cấp bách. Mô tả nên tóm tắt các điểm chính với nguồn. Tags nên bao gồm từ khóa chủ đề, 'tin tức', 'phân tích', năm hiện tại. Thumbnail nên truyền tải tâm trạng tin tức. Định dạng dưới dạng JSON."
+        }
+      }
+    }
+  ]
+}
