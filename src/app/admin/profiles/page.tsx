@@ -45,7 +45,10 @@ export default function AdminProfilesPage() {
         const matchesSearch =
             profile.name.en.toLowerCase().includes(search.toLowerCase()) ||
             profile.name.vi.toLowerCase().includes(search.toLowerCase()) ||
-            profile.category.toLowerCase().includes(search.toLowerCase());
+            (typeof profile.category === 'string'
+                ? profile.category.toLowerCase()
+                : (profile.category.vi || profile.category.en || '').toLowerCase()
+            ).includes(search.toLowerCase());
 
         const matchesFilter =
             filter === 'all' ||
@@ -170,7 +173,7 @@ export default function AdminProfilesPage() {
                                     </p>
 
                                     <div className="flex items-center justify-between text-xs text-zinc-500 mb-3">
-                                        <span>Category: {profile.category}</span>
+                                        <span>Category: {typeof profile.category === 'string' ? profile.category : (profile.category.vi || profile.category.en)}</span>
                                         <span>v{profile.version || 1}</span>
                                     </div>
 

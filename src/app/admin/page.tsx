@@ -166,7 +166,7 @@ export default function AdminDashboardPage() {
                                                 </span>
                                                 <div>
                                                     <p className="text-sm text-white">{profile.name.vi || profile.name.en}</p>
-                                                    <p className="text-xs text-zinc-500">{profile.category}</p>
+                                                    <p className="text-xs text-zinc-500">{typeof profile.category === 'string' ? profile.category : (profile.category.vi || profile.category.en)}</p>
                                                 </div>
                                             </div>
                                             <span className="text-sm text-zinc-400">{profile.usage} uses</span>

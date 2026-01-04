@@ -26,7 +26,7 @@ const defaultProfile: Omit<FirebaseProfile, 'id' | 'createdAt' | 'updatedAt' | '
     name: { en: '', vi: '' },
     description: { en: '', vi: '' },
     icon: '📝',
-    category: 'education',
+    category: { en: 'Education', vi: 'Giáo dục' },
     isActive: true,
     isPremium: false,
     prompts: {
@@ -237,16 +237,34 @@ export default function ProfileEditPage() {
                                 </CardHeader>
                                 <CardContent className="space-y-4">
                                     <div>
-                                        <label className="text-xs text-zinc-500 block mb-1">Category</label>
-                                        <select
-                                            value={profile.category}
-                                            onChange={(e) => handleChange({ category: e.target.value })}
-                                            className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white"
-                                        >
-                                            {CATEGORIES.map(cat => (
-                                                <option key={cat} value={cat}>{cat}</option>
-                                            ))}
-                                        </select>
+                                        <label className="text-xs text-zinc-500 block mb-1">Category (EN)</label>
+                                        <input
+                                            type="text"
+                                            value={typeof profile.category === 'string' ? profile.category : profile.category.en}
+                                            onChange={(e) => handleChange({
+                                                category: {
+                                                    en: e.target.value,
+                                                    vi: typeof profile.category === 'string' ? '' : profile.category.vi
+                                                }
+                                            })}
+                                            placeholder="e.g., Education"
+                                            className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="text-xs text-zinc-500 block mb-1">Category (VI)</label>
+                                        <input
+                                            type="text"
+                                            value={typeof profile.category === 'string' ? '' : profile.category.vi}
+                                            onChange={(e) => handleChange({
+                                                category: {
+                                                    en: typeof profile.category === 'string' ? profile.category : profile.category.en,
+                                                    vi: e.target.value
+                                                }
+                                            })}
+                                            placeholder="VD: Giáo dục"
+                                            className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder:text-zinc-500"
+                                        />
                                     </div>
                                     <div>
                                         <label className="text-xs text-zinc-500 block mb-1">Icon</label>
