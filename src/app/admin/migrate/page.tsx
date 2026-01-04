@@ -27,7 +27,7 @@ export default function MigratePage() {
                     name: profile.name,
                     description: profile.description,
                     icon: profile.icon,
-                    category: 'education',
+                    category: { en: 'Education', vi: 'Giáo dục' },
                     isActive: true,
                     isPremium: false,
                     prompts: profile.prompts,
