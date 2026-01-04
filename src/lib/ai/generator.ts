@@ -194,13 +194,8 @@ function parseResponse(text: string, step: PipelineStep): VideoIdea[] | OutlineS
             throw new Error(`Unknown step: ${step}`);
     }
 }
-// Models to try in order (highest to lowest capability)
-// Using stable version identifiers
-const MODELS = [
-    'gemini-2.5-flash',
-    'gemini-1.5-pro-002',
-    'gemini-1.5-flash-002',
-];
+// Single model - gemini-2.5-flash is the most reliable
+const MODEL_NAME = 'gemini-2.5-flash';
 
 export async function generate(params: GenerateParams): Promise<VideoIdea[] | OutlineSection[] | ScriptContent | VideoMetadata> {
     const userKeys = params.userApiKeys || [];
@@ -212,91 +207,63 @@ export async function generate(params: GenerateParams): Promise<VideoIdea[] | Ou
         );
     }
 
-    console.log(`📦 BYOK: Using ${userKeys.length} user-provided API keys`);
+    console.log(`📦 BYOK: Using ${userKeys.length} user-provided API keys with model: ${MODEL_NAME}`);
 
     let lastError: Error | null = null;
-    const triedKeys = new Set<string>();
 
-    // Try each model in order
-    for (const modelName of MODELS) {
-        console.log(`🔄 Trying model: ${modelName}`);
+    // Try each key
+    for (const apiKey of userKeys) {
+        try {
+            console.log(`  🔑 Trying key: ...${apiKey.slice(-8)}`);
 
-        // Try each key for this model
-        for (const apiKey of userKeys) {
-            // Skip already tried keys for this model
-            const keyId = `${modelName}:${apiKey.slice(-8)}`;
-            if (triedKeys.has(keyId)) continue;
-            triedKeys.add(keyId);
+            const genAI = new GoogleGenerativeAI(apiKey);
+            const model = genAI.getGenerativeModel({
+                model: MODEL_NAME,
+                generationConfig: {
+                    temperature: 0.8,
+                    topP: 0.95,
+                    maxOutputTokens: 65536, // Increased to avoid truncation
+                    responseMimeType: 'application/json', // Force JSON output
+                },
+            });
 
-            try {
-                console.log(`  🔑 Trying key: ...${apiKey.slice(-8)}`);
+            const systemPrompt = await getSystemPrompt(params.profileId, params.step, params.language);
+            const userPrompt = buildUserPrompt(params);
 
-                const genAI = new GoogleGenerativeAI(apiKey);
-                const model = genAI.getGenerativeModel({
-                    model: modelName,
-                    generationConfig: {
-                        temperature: 0.8,
-                        topP: 0.95,
-                        maxOutputTokens: 8192,
-                    },
-                });
+            const result = await model.generateContent([
+                { text: `System: ${systemPrompt}` },
+                { text: `User: ${userPrompt}` },
+            ]);
 
-                const systemPrompt = await getSystemPrompt(params.profileId, params.step, params.language);
-                const userPrompt = buildUserPrompt(params);
+            const response = result.response;
+            const text = response.text();
 
-                const result = await model.generateContent([
-                    { text: `System: ${systemPrompt}` },
-                    { text: `User: ${userPrompt}` },
-                ]);
+            console.log(`  ✅ Success with model: ${MODEL_NAME}, key: ...${apiKey.slice(-8)}`);
+            return parseResponse(text, params.step);
 
-                const response = result.response;
-                const text = response.text();
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            const errorMsg = lastError.message.toLowerCase();
 
-                console.log(`  ✅ Success with model: ${modelName}, key: ...${apiKey.slice(-8)}`);
-                return parseResponse(text, params.step);
+            // Log the error
+            console.log(`  ❌ Failed: ${lastError.message.slice(0, 100)}`);
 
-            } catch (error) {
-                lastError = error instanceof Error ? error : new Error(String(error));
-                const errorMsg = lastError.message.toLowerCase();
-
-                // Log the error
-                console.log(`  ❌ Failed: ${lastError.message.slice(0, 100)}`);
-
-                // Check error type
-                if (errorMsg.includes('leaked') || errorMsg.includes('invalid')) {
-                    console.log(`    → Key is leaked/invalid, skipping for all models`);
-                    // Mark this key as bad for all models
-                    for (const m of MODELS) {
-                        triedKeys.add(`${m}:${apiKey.slice(-8)}`);
-                    }
-                    continue;
-                }
-
-                if (errorMsg.includes('429') || errorMsg.includes('rate') || errorMsg.includes('quota')) {
-                    console.log(`    → Rate limited, trying next key`);
-                    continue;
-                }
-
-                if (errorMsg.includes('403') || errorMsg.includes('permission')) {
-                    console.log(`    → Permission denied, trying next key`);
-                    continue;
-                }
-
-                if (errorMsg.includes('model') || errorMsg.includes('not found') || errorMsg.includes('400')) {
-                    console.log(`    → Model not available for this key, trying next model`);
-                    break; // Try next model
-                }
-
-                // Other error - try next key
+            // Check error type and log accordingly
+            if (errorMsg.includes('leaked') || errorMsg.includes('invalid')) {
+                console.log(`    → Key is leaked/invalid, trying next key`);
+            } else if (errorMsg.includes('429') || errorMsg.includes('rate') || errorMsg.includes('quota')) {
+                console.log(`    → Rate limited, trying next key`);
+            } else if (errorMsg.includes('403') || errorMsg.includes('permission')) {
+                console.log(`    → Permission denied, trying next key`);
+            } else {
                 console.log(`    → Unknown error, trying next key`);
             }
+            // Continue to next key
         }
-
-        console.log(`⚠️ Model ${modelName} exhausted all keys, trying next model...`);
     }
 
-    // All models and keys exhausted
-    const errorMessage = lastError?.message || 'All API keys and models failed';
+    // All keys exhausted
+    const errorMessage = lastError?.message || 'All API keys failed';
     console.error(`❌ Generation failed: ${errorMessage}`);
 
     throw new Error(
