@@ -217,60 +217,111 @@ function parseResponse(text: string, step: PipelineStep): VideoIdea[] | OutlineS
             throw new Error(`Unknown step: ${step}`);
     }
 }
+// Models to try in order (highest to lowest capability)
+const MODELS = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash-lite',
+    'gemini-1.5-flash',
+];
 
 export async function generate(params: GenerateParams): Promise<VideoIdea[] | OutlineSection[] | ScriptContent | VideoMetadata> {
-    const maxRetries = 3;
-    let lastError: Error | null = null;
+    const userKeys = params.userApiKeys || [];
+    const allKeys = [...userKeys]; // User keys first
 
-    for (let attempt = 0; attempt < maxRetries; attempt++) {
-        const keyIndex = currentKeyIndex;
-        const apiKey = getNextWorkingKey(params.userApiKeys);
-
-        try {
-            const genAI = new GoogleGenerativeAI(apiKey);
-            const model = genAI.getGenerativeModel({
-                model: 'gemini-2.5-flash',
-                generationConfig: {
-                    temperature: 0.8,
-                    topP: 0.95,
-                    maxOutputTokens: 8192,
-                },
-            });
-
-            const systemPrompt = await getSystemPrompt(params.profileId, params.step, params.language);
-            const userPrompt = buildUserPrompt(params);
-
-            const result = await model.generateContent([
-                { text: `System: ${systemPrompt}` },
-                { text: `User: ${userPrompt}` },
-            ]);
-
-            const response = result.response;
-            const text = response.text();
-
-            return parseResponse(text, params.step);
-
-        } catch (error) {
-            lastError = error instanceof Error ? error : new Error(String(error));
-
-            // Check if it's a rate limit, quota, or suspended key error
-            if (lastError.message.includes('429') ||
-                lastError.message.includes('403') ||
-                lastError.message.includes('quota') ||
-                lastError.message.includes('rate') ||
-                lastError.message.includes('suspended') ||
-                lastError.message.includes('PERMISSION_DENIED')) {
-                markKeyAsFailed(keyIndex);
-                console.log(`Key ${keyIndex} marked as failed, trying next...`);
-                continue;
-            }
-
-            // For other errors, don't mark key as failed but still retry
-            console.error(`Attempt ${attempt + 1} failed:`, lastError.message);
-        }
+    // Add system keys only if no user keys or as final fallback
+    if (userKeys.length === 0) {
+        allKeys.push(...API_KEYS);
     }
 
-    throw lastError || new Error('Generation failed after all retries');
+    let lastError: Error | null = null;
+    const triedKeys = new Set<string>();
+
+    // Try each model in order
+    for (const modelName of MODELS) {
+        console.log(`🔄 Trying model: ${modelName}`);
+
+        // Try each key for this model
+        for (const apiKey of allKeys) {
+            // Skip already tried keys for this model
+            const keyId = `${modelName}:${apiKey.slice(-8)}`;
+            if (triedKeys.has(keyId)) continue;
+            triedKeys.add(keyId);
+
+            try {
+                console.log(`  🔑 Trying key: ...${apiKey.slice(-8)}`);
+
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const model = genAI.getGenerativeModel({
+                    model: modelName,
+                    generationConfig: {
+                        temperature: 0.8,
+                        topP: 0.95,
+                        maxOutputTokens: 8192,
+                    },
+                });
+
+                const systemPrompt = await getSystemPrompt(params.profileId, params.step, params.language);
+                const userPrompt = buildUserPrompt(params);
+
+                const result = await model.generateContent([
+                    { text: `System: ${systemPrompt}` },
+                    { text: `User: ${userPrompt}` },
+                ]);
+
+                const response = result.response;
+                const text = response.text();
+
+                console.log(`  ✅ Success with model: ${modelName}, key: ...${apiKey.slice(-8)}`);
+                return parseResponse(text, params.step);
+
+            } catch (error) {
+                lastError = error instanceof Error ? error : new Error(String(error));
+                const errorMsg = lastError.message.toLowerCase();
+
+                // Log the error
+                console.log(`  ❌ Failed: ${lastError.message.slice(0, 100)}`);
+
+                // Check error type
+                if (errorMsg.includes('leaked') || errorMsg.includes('invalid')) {
+                    console.log(`    → Key is leaked/invalid, skipping for all models`);
+                    // Mark this key as bad for all models
+                    for (const m of MODELS) {
+                        triedKeys.add(`${m}:${apiKey.slice(-8)}`);
+                    }
+                    continue;
+                }
+
+                if (errorMsg.includes('429') || errorMsg.includes('rate') || errorMsg.includes('quota')) {
+                    console.log(`    → Rate limited, trying next key`);
+                    continue;
+                }
+
+                if (errorMsg.includes('403') || errorMsg.includes('permission')) {
+                    console.log(`    → Permission denied, trying next key`);
+                    continue;
+                }
+
+                if (errorMsg.includes('model') || errorMsg.includes('not found') || errorMsg.includes('400')) {
+                    console.log(`    → Model not available for this key, trying next model`);
+                    break; // Try next model
+                }
+
+                // Other error - try next key
+                console.log(`    → Unknown error, trying next key`);
+            }
+        }
+
+        console.log(`⚠️ Model ${modelName} exhausted all keys, trying next model...`);
+    }
+
+    // All models and keys exhausted
+    const errorMessage = lastError?.message || 'All API keys and models failed';
+    console.error(`❌ Generation failed: ${errorMessage}`);
+
+    throw new Error(
+        `Generation failed. Please add working API keys.\n` +
+        `Last error: ${errorMessage.slice(0, 200)}`
+    );
 }
 
 export function getProfiles() {
