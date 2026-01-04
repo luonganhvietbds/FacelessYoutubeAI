@@ -113,13 +113,41 @@ function buildUserPrompt(params: GenerateParams): string {
 }
 
 function parseResponse(text: string, step: PipelineStep): VideoIdea[] | OutlineSection[] | ScriptContent | VideoMetadata {
-    // Extract JSON from response
-    const jsonMatch = text.match(/\[[\s\S]*\]|\{[\s\S]*\}/);
-    if (!jsonMatch) {
-        throw new Error('No valid JSON found in response');
+    // Clean the text - remove markdown code blocks if present
+    let cleanText = text.trim();
+
+    // Remove markdown code block wrapper
+    if (cleanText.startsWith('```json')) {
+        cleanText = cleanText.slice(7);
+    } else if (cleanText.startsWith('```')) {
+        cleanText = cleanText.slice(3);
+    }
+    if (cleanText.endsWith('```')) {
+        cleanText = cleanText.slice(0, -3);
+    }
+    cleanText = cleanText.trim();
+
+    // Try to find and extract JSON
+    let jsonStr = cleanText;
+
+    // If the whole text isn't valid JSON, try to extract it
+    try {
+        JSON.parse(jsonStr);
+    } catch {
+        // Try to extract JSON object or array
+        const arrayMatch = cleanText.match(/\[\s*\{[\s\S]*\}\s*\]/);
+        const objectMatch = cleanText.match(/\{[\s\S]*\}/);
+
+        if (arrayMatch) {
+            jsonStr = arrayMatch[0];
+        } else if (objectMatch) {
+            jsonStr = objectMatch[0];
+        } else {
+            throw new Error('No valid JSON found in response');
+        }
     }
 
-    const parsed = JSON.parse(jsonMatch[0]);
+    const parsed = JSON.parse(jsonStr);
 
     switch (step) {
         case 'idea':
@@ -166,8 +194,8 @@ function parseResponse(text: string, step: PipelineStep): VideoIdea[] | OutlineS
 // Models to try in order (highest to lowest capability)
 const MODELS = [
     'gemini-2.5-flash',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash-latest',
 ];
 
 export async function generate(params: GenerateParams): Promise<VideoIdea[] | OutlineSection[] | ScriptContent | VideoMetadata> {
