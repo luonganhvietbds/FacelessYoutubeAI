@@ -23,7 +23,7 @@ import {
     deleteProfile,
     toggleProfileActive,
     FirebaseProfile
-} from '@/lib/firebase/database';
+} from '@/lib/firebase/firestore';
 
 export default function AdminProfilesPage() {
     const router = useRouter();

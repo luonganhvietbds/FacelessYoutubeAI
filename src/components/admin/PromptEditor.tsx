@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { FirebaseProfile } from '@/lib/firebase/database';
+import { FirebaseProfile } from '@/lib/firebase/firestore';
 
 interface PromptEditorProps {
     profile: FirebaseProfile;

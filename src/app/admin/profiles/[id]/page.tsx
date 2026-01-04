@@ -17,7 +17,7 @@ import {
     getProfileVersions,
     FirebaseProfile,
     ProfileVersion
-} from '@/lib/firebase/database';
+} from '@/lib/firebase/firestore';
 
 const CATEGORIES = ['education', 'entertainment', 'business', 'lifestyle', 'news', 'review'];
 const ICONS = ['📝', '🎓', '📹', '⭐', '📰', '💡', '🎬', '🎯', '📊', '🔥'];
@@ -53,7 +53,7 @@ export default function ProfileEditPage() {
         if (!isNew) {
             loadProfile();
         } else {
-            setProfile({ id: '', ...defaultProfile, version: 1, createdAt: 0, updatedAt: 0 });
+            setProfile({ id: '', ...defaultProfile, version: 1, createdAt: null as any, updatedAt: null as any });
         }
     }, [profileId, isNew]);
 
@@ -135,7 +135,7 @@ export default function ProfileEditPage() {
                             </h2>
                             {!isNew && (
                                 <p className="text-sm text-zinc-500">
-                                    Version {profile.version} • Last updated {new Date(profile.updatedAt).toLocaleString()}
+                                    Version {profile.version} • Last updated {profile.updatedAt?.toDate?.()?.toLocaleString() || 'N/A'}
                                 </p>
                             )}
                         </div>
@@ -256,8 +256,8 @@ export default function ProfileEditPage() {
                                                     key={icon}
                                                     onClick={() => handleChange({ icon })}
                                                     className={`w-10 h-10 rounded-lg border flex items-center justify-center text-lg ${profile.icon === icon
-                                                            ? 'border-blue-500 bg-blue-500/10'
-                                                            : 'border-zinc-700 hover:border-zinc-600'
+                                                        ? 'border-blue-500 bg-blue-500/10'
+                                                        : 'border-zinc-700 hover:border-zinc-600'
                                                         }`}
                                                 >
                                                     {icon}
@@ -326,7 +326,7 @@ export default function ProfileEditPage() {
                                                 <div>
                                                     <p className="text-white">Version {version.version}</p>
                                                     <p className="text-xs text-zinc-500">
-                                                        {version.changeNote} • {new Date(version.changedAt).toLocaleString()}
+                                                        {version.changeNote} • {version.changedAt?.toDate?.()?.toLocaleString() || 'N/A'}
                                                     </p>
                                                 </div>
                                                 <Button

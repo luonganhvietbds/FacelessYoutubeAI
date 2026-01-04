@@ -16,10 +16,10 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import {
     getAllProfiles,
     getAllUsers,
-    getProfileUsageStats,
     FirebaseProfile,
     FirebaseUser
-} from '@/lib/firebase/database';
+} from '@/lib/firebase/firestore';
+import { getProfileUsageStats } from '@/lib/firebase/database';
 
 interface StatsCard {
     title: string;
@@ -85,7 +85,8 @@ export default function AdminDashboardPage() {
             title: 'Active Today',
             value: users.filter(u => {
                 const today = new Date().setHours(0, 0, 0, 0);
-                return u.lastUsed >= today;
+                const lastUsed = u.lastUsed?.toDate?.()?.getTime() || 0;
+                return lastUsed >= today;
             }).length,
             icon: Activity,
             color: 'orange',
@@ -98,7 +99,7 @@ export default function AdminDashboardPage() {
         .slice(0, 5);
 
     const recentUsers = [...users]
-        .sort((a, b) => b.lastUsed - a.lastUsed)
+        .sort((a, b) => (b.lastUsed?.toDate?.()?.getTime() || 0) - (a.lastUsed?.toDate?.()?.getTime() || 0))
         .slice(0, 5);
 
     if (loading) {
@@ -206,7 +207,7 @@ export default function AdminDashboardPage() {
                                                 </div>
                                             </div>
                                             <span className="text-xs text-zinc-500">
-                                                {new Date(user.lastUsed).toLocaleDateString()}
+                                                {user.lastUsed?.toDate?.()?.toLocaleDateString() || 'Never'}
                                             </span>
                                         </div>
                                     ))

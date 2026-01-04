@@ -7,7 +7,7 @@ import { Upload, Check, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { createProfile, FirebaseProfile } from '@/lib/firebase/database';
+import { createProfile, FirebaseProfile } from '@/lib/firebase/firestore';
 import localProfiles from '@/lib/prompts/profiles.json';
 
 export default function MigratePage() {
@@ -58,7 +58,7 @@ export default function MigratePage() {
                 <div className="text-center">
                     <h2 className="text-xl font-semibold text-white mb-2">Migrate Local Profiles to Firebase</h2>
                     <p className="text-zinc-400">
-                        This will copy all {localProfiles.profiles.length} profiles from the local JSON file to Firebase Realtime Database.
+                        This will copy all {localProfiles.profiles.length} profiles from the local JSON file to Firestore.
                     </p>
                 </div>
 

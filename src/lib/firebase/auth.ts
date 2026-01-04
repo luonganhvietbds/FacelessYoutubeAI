@@ -7,7 +7,7 @@ import {
     User
 } from 'firebase/auth';
 import { auth } from './config';
-import { getUserById, createOrUpdateUser } from './database';
+import { getUserById, createOrUpdateUser } from './firestore';
 
 export interface AdminUser {
     uid: string;
@@ -21,8 +21,20 @@ export async function signIn(email: string, password: string): Promise<AdminUser
     const credential = await signInWithEmailAndPassword(auth, email, password);
     const user = credential.user;
 
-    // Check if user is admin
-    const dbUser = await getUserById(user.uid);
+    // Check if user exists in Firestore, create if not
+    let dbUser = await getUserById(user.uid);
+
+    if (!dbUser) {
+        // Create user record in Firestore
+        await createOrUpdateUser(user.uid, {
+            email: user.email || '',
+            displayName: user.displayName || '',
+            role: 'user', // Default role
+            tier: 'free',
+        });
+        dbUser = await getUserById(user.uid);
+    }
+
     const isAdmin = dbUser?.role === 'admin';
 
     if (!isAdmin) {

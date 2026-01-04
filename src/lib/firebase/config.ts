@@ -1,6 +1,7 @@
-// Videlix AI - Firebase Configuration
+// Videlix AI - Firebase Configuration (Hybrid: Firestore + Realtime DB)
 
 import { initializeApp, getApps } from 'firebase/app';
+import { getFirestore } from 'firebase/firestore';
 import { getDatabase } from 'firebase/database';
 import { getAuth } from 'firebase/auth';
 
@@ -19,7 +20,13 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
 
 // Initialize services
-export const database = getDatabase(app);
+// Firestore - Primary database for profiles, users, settings
+export const db = getFirestore(app);
+
+// Realtime Database - Secondary for live counters, rate limiting, presence
+export const realtimeDb = getDatabase(app);
+
+// Auth
 export const auth = getAuth(app);
 
 export default app;

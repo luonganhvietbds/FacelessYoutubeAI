@@ -22,7 +22,7 @@ import {
     updateUserTier,
     updateUserRole,
     FirebaseUser
-} from '@/lib/firebase/database';
+} from '@/lib/firebase/firestore';
 
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<FirebaseUser[]>([]);
@@ -69,7 +69,8 @@ export default function AdminUsersPage() {
         admins: users.filter(u => u.role === 'admin').length,
         activeToday: users.filter(u => {
             const today = new Date().setHours(0, 0, 0, 0);
-            return u.lastUsed >= today;
+            const lastUsed = u.lastUsed?.toDate?.()?.getTime() || 0;
+            return lastUsed >= today;
         }).length,
     };
 
@@ -204,7 +205,7 @@ export default function AdminUsersPage() {
                                                 </td>
                                                 <td className="px-4 py-3">
                                                     <span className="text-sm text-zinc-500">
-                                                        {user.lastUsed ? new Date(user.lastUsed).toLocaleDateString() : 'Never'}
+                                                        {user.lastUsed?.toDate?.()?.toLocaleDateString() || 'Never'}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-right">

@@ -7,7 +7,7 @@ import { Save, AlertTriangle, Bell, Shield, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AdminLayout } from '@/components/admin/AdminLayout';
-import { getSettings, updateSettings, AppSettings } from '@/lib/firebase/database';
+import { getSettings, updateSettings, AppSettings } from '@/lib/firebase/firestore';
 
 export default function AdminSettingsPage() {
     const [settings, setSettings] = useState<AppSettings>({
