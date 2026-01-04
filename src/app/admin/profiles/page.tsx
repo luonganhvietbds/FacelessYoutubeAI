@@ -45,10 +45,7 @@ export default function AdminProfilesPage() {
         const matchesSearch =
             profile.name.en.toLowerCase().includes(search.toLowerCase()) ||
             profile.name.vi.toLowerCase().includes(search.toLowerCase()) ||
-            (typeof profile.category === 'string'
-                ? profile.category.toLowerCase()
-                : (profile.category.vi || profile.category.en || '').toLowerCase()
-            ).includes(search.toLowerCase());
+            (profile.category.vi || profile.category.en || '').toLowerCase().includes(search.toLowerCase());
 
         const matchesFilter =
             filter === 'all' ||
