@@ -2,7 +2,8 @@
 
 // Videlix AI - Header Component
 
-import { Languages, Moon, RotateCcw } from 'lucide-react';
+import Link from 'next/link';
+import { Languages, Moon, RotateCcw, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { usePipelineStore } from '@/lib/store/pipelineStore';
 
@@ -51,6 +52,18 @@ export function Header() {
                     <RotateCcw className="w-4 h-4 mr-2" />
                     {language === 'vi' ? 'Bắt đầu lại' : 'Reset'}
                 </Button>
+
+                {/* Admin Link */}
+                <Link href="/admin">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-zinc-400 hover:text-blue-400 hover:bg-zinc-800"
+                    >
+                        <Shield className="w-4 h-4 mr-2" />
+                        Admin
+                    </Button>
+                </Link>
 
                 {/* Dark mode indicator */}
                 <div className="flex items-center gap-1 text-zinc-500 text-xs">
