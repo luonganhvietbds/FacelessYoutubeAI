@@ -124,16 +124,16 @@ export async function addUserApiKey(
         return duplicate.id;
     }
 
-    // Create new key document
+    // Create new key document - use null instead of undefined for Firestore
     const keysRef = collection(db, COLLECTION, userId, 'keys');
     const newDocRef = doc(keysRef);
 
-    const keyData: Omit<UserApiKey, 'id'> = {
+    const keyData = {
         key,
         keyHash,
         maskedKey,
         status,
-        errorMessage,
+        errorMessage: errorMessage || null, // Firestore doesn't accept undefined
         lastChecked: Timestamp.now(),
         usageCount: 0,
         createdAt: Timestamp.now(),
