@@ -133,17 +133,20 @@ function parseResponse(text: string, step: PipelineStep): VideoIdea[] | OutlineS
     // If the whole text isn't valid JSON, try to extract it
     try {
         JSON.parse(jsonStr);
-    } catch {
+    } catch (e) {
+        // Log first 500 chars for debugging
+        console.error('JSON parse failed. Response preview:', cleanText.slice(0, 500));
+
         // Try to extract JSON object or array
-        const arrayMatch = cleanText.match(/\[\s*\{[\s\S]*\}\s*\]/);
-        const objectMatch = cleanText.match(/\{[\s\S]*\}/);
+        const arrayMatch = cleanText.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+        const objectMatch = cleanText.match(/\{[\s\S]*?\}/);
 
         if (arrayMatch) {
             jsonStr = arrayMatch[0];
         } else if (objectMatch) {
             jsonStr = objectMatch[0];
         } else {
-            throw new Error('No valid JSON found in response');
+            throw new Error('No valid JSON found in response. Response starts with: ' + cleanText.slice(0, 100));
         }
     }
 
@@ -192,10 +195,11 @@ function parseResponse(text: string, step: PipelineStep): VideoIdea[] | OutlineS
     }
 }
 // Models to try in order (highest to lowest capability)
+// Using stable version identifiers
 const MODELS = [
     'gemini-2.5-flash',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash-latest',
+    'gemini-1.5-pro-002',
+    'gemini-1.5-flash-002',
 ];
 
 export async function generate(params: GenerateParams): Promise<VideoIdea[] | OutlineSection[] | ScriptContent | VideoMetadata> {
