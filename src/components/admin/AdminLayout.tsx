@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { subscribeToAuthState, logOut, AdminUser } from '@/lib/firebase/auth';
+import { subscribeToAuthState, logOut, AuthUser } from '@/lib/firebase/auth';
 
 interface AdminLayoutProps {
     children: React.ReactNode;
@@ -33,7 +33,7 @@ const navItems = [
 
 export function AdminLayout({ children }: AdminLayoutProps) {
     const router = useRouter();
-    const [user, setUser] = useState<AdminUser | null>(null);
+    const [user, setUser] = useState<AuthUser | null>(null);
     const [loading, setLoading] = useState(true);
     const [sidebarOpen, setSidebarOpen] = useState(true);
     const [currentPath, setCurrentPath] = useState('');
