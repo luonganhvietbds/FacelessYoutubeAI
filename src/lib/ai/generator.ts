@@ -61,7 +61,18 @@ const API_KEYS = [
 let currentKeyIndex = 0;
 const failedKeys = new Set<number>();
 
-function getNextWorkingKey(): string {
+// User key rotation state (per user)
+const userKeyState = new Map<string, { keys: string[]; index: number; failed: Set<number> }>();
+
+function getNextWorkingKey(userKeys?: string[]): string {
+    // If user keys provided, use those first
+    if (userKeys && userKeys.length > 0) {
+        // Simple rotation through user keys
+        const index = Math.floor(Math.random() * userKeys.length);
+        return userKeys[index];
+    }
+
+    // Fallback to system keys
     const startIndex = currentKeyIndex;
 
     do {
@@ -95,6 +106,7 @@ export interface GenerateParams {
         script?: ScriptContent;
     };
     modifier?: 'shorter' | 'longer' | 'funnier' | 'professional' | 'default';
+    userApiKeys?: string[]; // User's own API keys (BYOK)
 }
 
 function buildUserPrompt(params: GenerateParams): string {
@@ -212,7 +224,7 @@ export async function generate(params: GenerateParams): Promise<VideoIdea[] | Ou
 
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         const keyIndex = currentKeyIndex;
-        const apiKey = getNextWorkingKey();
+        const apiKey = getNextWorkingKey(params.userApiKeys);
 
         try {
             const genAI = new GoogleGenerativeAI(apiKey);
