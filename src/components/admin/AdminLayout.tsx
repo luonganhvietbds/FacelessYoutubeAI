@@ -12,7 +12,8 @@ import {
     LogOut,
     Menu,
     X,
-    ChevronLeft
+    ChevronLeft,
+    Database
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -27,6 +28,7 @@ const navItems = [
     { id: 'profiles', label: 'Profiles', icon: FileText, href: '/admin/profiles' },
     { id: 'users', label: 'Users', icon: Users, href: '/admin/users' },
     { id: 'settings', label: 'Settings', icon: Settings, href: '/admin/settings' },
+    { id: 'setup', label: 'Setup', icon: Database, href: '/admin/setup' },
 ];
 
 export function AdminLayout({ children }: AdminLayoutProps) {
