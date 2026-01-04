@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePipelineStore } from '@/lib/store/pipelineStore';
 import { RegenerateButton } from '@/components/controls/RegenerateButton';
+import { useAuth } from '@/hooks/useAuth';
+import { generateContent } from '@/lib/services/generateService';
 import { OutlineSection } from '@/types';
 
 export function OutlineStep() {
@@ -28,6 +30,7 @@ export function OutlineStep() {
         setCurrentStep
     } = usePipelineStore();
 
+    const { user } = useAuth();
     const selectedIdea = ideas.find(i => i.id === selectedIdeaId);
     const [editingSection, setEditingSection] = useState<string | null>(null);
 
@@ -38,25 +41,19 @@ export function OutlineStep() {
         setError(null);
 
         try {
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    step: 'outline',
-                    profileId,
-                    language,
-                    topic,
-                    previousContent: { selectedIdea },
-                    modifier,
-                }),
-            });
+            const result = await generateContent<OutlineSection[]>({
+                step: 'outline',
+                profileId,
+                language,
+                topic,
+                previousContent: { selectedIdea },
+                modifier,
+            }, user?.uid);
 
-            const data = await response.json();
-
-            if (data.success) {
-                setOutline(data.data as OutlineSection[]);
+            if (result.success && result.data) {
+                setOutline(result.data);
             } else {
-                setError(data.error || (language === 'vi' ? 'Có lỗi xảy ra' : 'An error occurred'));
+                setError(result.error || (language === 'vi' ? 'Có lỗi xảy ra' : 'An error occurred'));
             }
         } catch (error) {
             setError(language === 'vi' ? 'Không thể kết nối server' : 'Failed to connect to server');

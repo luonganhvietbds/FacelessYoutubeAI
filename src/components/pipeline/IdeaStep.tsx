@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { usePipelineStore } from '@/lib/store/pipelineStore';
 import { RegenerateButton } from '@/components/controls/RegenerateButton';
+import { useAuth } from '@/hooks/useAuth';
+import { generateContent } from '@/lib/services/generateService';
 import { VideoIdea } from '@/types';
 
 export function IdeaStep() {
@@ -28,6 +30,7 @@ export function IdeaStep() {
         setCurrentStep
     } = usePipelineStore();
 
+    const { user } = useAuth();
     const [localTopic, setLocalTopic] = useState(topic);
 
     const handleGenerate = async (modifier: string = 'default') => {
@@ -50,24 +53,18 @@ export function IdeaStep() {
         setError(null);
 
         try {
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    step: 'idea',
-                    profileId,
-                    language,
-                    topic: localTopic,
-                    modifier,
-                }),
-            });
+            const result = await generateContent<VideoIdea[]>({
+                step: 'idea',
+                profileId,
+                language,
+                topic: localTopic,
+                modifier,
+            }, user?.uid);
 
-            const data = await response.json();
-
-            if (data.success) {
-                setIdeas(data.data as VideoIdea[]);
+            if (result.success && result.data) {
+                setIdeas(result.data);
             } else {
-                setError(data.error || (language === 'vi' ? 'Có lỗi xảy ra' : 'An error occurred'));
+                setError(result.error || (language === 'vi' ? 'Có lỗi xảy ra' : 'An error occurred'));
             }
         } catch (error) {
             setError(language === 'vi' ? 'Không thể kết nối server' : 'Failed to connect to server');

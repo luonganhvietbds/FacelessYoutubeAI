@@ -52,7 +52,8 @@ export async function POST(request: NextRequest) {
             language,
             topic,
             previousContent,
-            modifier
+            modifier,
+            userApiKeys, // User's own API keys (BYOK)
         } = body as {
             step: PipelineStep;
             profileId: string;
@@ -64,6 +65,7 @@ export async function POST(request: NextRequest) {
                 script?: ScriptContent;
             };
             modifier?: 'shorter' | 'longer' | 'funnier' | 'professional' | 'default';
+            userApiKeys?: string[];
         };
 
         // Validate required fields
@@ -94,7 +96,7 @@ export async function POST(request: NextRequest) {
             );
         }
 
-        // Generate content
+        // Generate content with user's API keys if provided
         const result = await generate({
             step,
             profileId,
@@ -102,6 +104,7 @@ export async function POST(request: NextRequest) {
             topic,
             previousContent,
             modifier,
+            userApiKeys, // Pass user keys to generator
         });
 
         return NextResponse.json({

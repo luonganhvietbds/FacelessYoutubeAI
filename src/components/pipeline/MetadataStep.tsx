@@ -11,6 +11,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { usePipelineStore } from '@/lib/store/pipelineStore';
 import { RegenerateButton } from '@/components/controls/RegenerateButton';
+import { useAuth } from '@/hooks/useAuth';
+import { generateContent } from '@/lib/services/generateService';
 import { VideoMetadata } from '@/types';
 
 export function MetadataStep() {
@@ -29,6 +31,7 @@ export function MetadataStep() {
         resetPipeline
     } = usePipelineStore();
 
+    const { user } = useAuth();
     const [copied, setCopied] = useState<string | null>(null);
 
     const handleGenerate = async (modifier: string = 'default') => {
@@ -38,25 +41,19 @@ export function MetadataStep() {
         setError(null);
 
         try {
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    step: 'metadata',
-                    profileId,
-                    language,
-                    topic,
-                    previousContent: { script },
-                    modifier,
-                }),
-            });
+            const result = await generateContent<VideoMetadata>({
+                step: 'metadata',
+                profileId,
+                language,
+                topic,
+                previousContent: { script },
+                modifier,
+            }, user?.uid);
 
-            const data = await response.json();
-
-            if (data.success) {
-                setMetadata(data.data as VideoMetadata);
+            if (result.success && result.data) {
+                setMetadata(result.data);
             } else {
-                setError(data.error || (language === 'vi' ? 'Có lỗi xảy ra' : 'An error occurred'));
+                setError(result.error || (language === 'vi' ? 'Có lỗi xảy ra' : 'An error occurred'));
             }
         } catch (error) {
             setError(language === 'vi' ? 'Không thể kết nối server' : 'Failed to connect to server');

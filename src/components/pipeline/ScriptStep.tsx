@@ -12,6 +12,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePipelineStore } from '@/lib/store/pipelineStore';
 import { RegenerateButton } from '@/components/controls/RegenerateButton';
+import { useAuth } from '@/hooks/useAuth';
+import { generateContent } from '@/lib/services/generateService';
 import { ScriptContent } from '@/types';
 
 export function ScriptStep() {
@@ -29,6 +31,7 @@ export function ScriptStep() {
         setCurrentStep
     } = usePipelineStore();
 
+    const { user } = useAuth();
     const [activeTab, setActiveTab] = useState('preview');
 
     const handleGenerate = async (modifier: string = 'default') => {
@@ -38,25 +41,19 @@ export function ScriptStep() {
         setError(null);
 
         try {
-            const response = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    step: 'script',
-                    profileId,
-                    language,
-                    topic,
-                    previousContent: { outline },
-                    modifier,
-                }),
-            });
+            const result = await generateContent<ScriptContent>({
+                step: 'script',
+                profileId,
+                language,
+                topic,
+                previousContent: { outline },
+                modifier,
+            }, user?.uid);
 
-            const data = await response.json();
-
-            if (data.success) {
-                setScript(data.data as ScriptContent);
+            if (result.success && result.data) {
+                setScript(result.data);
             } else {
-                setError(data.error || (language === 'vi' ? 'Có lỗi xảy ra' : 'An error occurred'));
+                setError(result.error || (language === 'vi' ? 'Có lỗi xảy ra' : 'An error occurred'));
             }
         } catch (error) {
             setError(language === 'vi' ? 'Không thể kết nối server' : 'Failed to connect to server');
