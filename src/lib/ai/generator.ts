@@ -127,30 +127,65 @@ function parseResponse(text: string, step: PipelineStep): VideoIdea[] | OutlineS
     }
     cleanText = cleanText.trim();
 
-    // Try to find and extract JSON
-    let jsonStr = cleanText;
+    // Function to repair common JSON issues
+    function repairJSON(str: string): string {
+        // Fix missing commas between properties: "value"\n"key" -> "value",\n"key"
+        str = str.replace(/(")\s*\n\s*("/g, '$1,\n$2');
 
-    // If the whole text isn't valid JSON, try to extract it
-    try {
-        JSON.parse(jsonStr);
-    } catch (e) {
-        // Log first 500 chars for debugging
-        console.error('JSON parse failed. Response preview:', cleanText.slice(0, 500));
+        // Fix missing commas after objects: }\n{ -> },\n{
+        str = str.replace(/}\s*\n\s*{/g, '},\n{');
 
-        // Try to extract JSON object or array
-        const arrayMatch = cleanText.match(/\[\s*\{[\s\S]*?\}\s*\]/);
-        const objectMatch = cleanText.match(/\{[\s\S]*?\}/);
+        // Fix missing commas after arrays: ]\n[ -> ],\n[
+        str = str.replace(/]\s*\n\s*\[/g, '],\n[');
 
-        if (arrayMatch) {
-            jsonStr = arrayMatch[0];
-        } else if (objectMatch) {
-            jsonStr = objectMatch[0];
-        } else {
-            throw new Error('No valid JSON found in response. Response starts with: ' + cleanText.slice(0, 100));
-        }
+        // Fix trailing commas before ] or }
+        str = str.replace(/,\s*([}\]])/g, '$1');
+
+        return str;
     }
 
-    const parsed = JSON.parse(jsonStr);
+    // Try to parse, repair if needed
+    let jsonStr = cleanText;
+    let parsed;
+
+    try {
+        parsed = JSON.parse(jsonStr);
+    } catch (firstError) {
+        console.log('First parse failed, attempting repair...');
+
+        // Try to repair the JSON
+        jsonStr = repairJSON(cleanText);
+
+        try {
+            parsed = JSON.parse(jsonStr);
+            console.log('JSON repair successful!');
+        } catch (secondError) {
+            // Log for debugging
+            console.error('JSON parse failed after repair. Response preview:', cleanText.slice(0, 500));
+
+            // Try to extract JSON object or array
+            const arrayMatch = cleanText.match(/\[\s*\{[\s\S]*?\}\s*\]/);
+            const objectMatch = cleanText.match(/\{[\s\S]*?\}/);
+
+            if (arrayMatch) {
+                jsonStr = repairJSON(arrayMatch[0]);
+                try {
+                    parsed = JSON.parse(jsonStr);
+                } catch {
+                    throw new Error('Could not parse array JSON: ' + cleanText.slice(0, 100));
+                }
+            } else if (objectMatch) {
+                jsonStr = repairJSON(objectMatch[0]);
+                try {
+                    parsed = JSON.parse(jsonStr);
+                } catch {
+                    throw new Error('Could not parse object JSON: ' + cleanText.slice(0, 100));
+                }
+            } else {
+                throw new Error('No valid JSON found in response. Response starts with: ' + cleanText.slice(0, 100));
+            }
+        }
+    }
 
     switch (step) {
         case 'idea':
