@@ -130,16 +130,16 @@ function parseResponse(text: string, step: PipelineStep): VideoIdea[] | OutlineS
     // Function to repair common JSON issues
     function repairJSON(str: string): string {
         // Fix missing commas between properties: "value"\n"key" -> "value",\n"key"
-        str = str.replace(/(")\s*\n\s*("/g, '$1,\n$2');
+        str = str.replace(new RegExp('(")\\s*\\n\\s*(")', 'g'), '$1,\n$2');
 
         // Fix missing commas after objects: }\n{ -> },\n{
-        str = str.replace(/}\s*\n\s*{/g, '},\n{');
+        str = str.replace(new RegExp('}\\s*\\n\\s*{', 'g'), '},\n{');
 
         // Fix missing commas after arrays: ]\n[ -> ],\n[
-        str = str.replace(/]\s*\n\s*\[/g, '],\n[');
+        str = str.replace(new RegExp(']\\s*\\n\\s*\\[', 'g'), '],\n[');
 
         // Fix trailing commas before ] or }
-        str = str.replace(/,\s*([}\]])/g, '$1');
+        str = str.replace(new RegExp(',\\s*([}\\]])', 'g'), '$1');
 
         return str;
     }
