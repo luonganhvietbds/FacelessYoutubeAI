@@ -27,7 +27,7 @@ export interface FirebaseProfile {
     name: BilingualText;
     description: BilingualText;
     icon: string;
-    category: string;
+    category: BilingualText; // Changed to bilingual for en/vi support
     isActive: boolean;
     isPremium: boolean;
     version: number;
