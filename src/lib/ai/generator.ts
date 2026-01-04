@@ -37,63 +37,9 @@ async function getSystemPrompt(profileId: string, step: PipelineStep, language: 
     return profile.prompts[step][language];
 }
 
-// API Keys with rotation
-const API_KEYS = [
-    'AIzaSyDYZvQjDqG1yeZXyVBp1VRa7Vf9H-Xdzxo',
-    'AIzaSyAM7MccHk2kQUOHVfXTPl0KZLfzWqY2GEo',
-    'AIzaSyCywMMIs7n47QvxGMSyCsKS6ml2cZXzTrc',
-    'AIzaSyCael8ozNJ5HBtMRqm4LagdCj4dRNUmmx4',
-    'AIzaSyCGgCbAanW7lqJWKEGaJjux7ey4nMfobO8',
-    'AIzaSyA9-90C18uEZSrlWZD3Y-9rnaT-WxGw8LQ',
-    'AIzaSyAPZgG_s06eJnHyr5CUnMXjAMi8zEIB6BI',
-    'AIzaSyA5aAvSe2788T6k90AFolkdMo_s6a4E900',
-    'AIzaSyB9p1sSEiupLRr66NhJIFVIVqmebkvIXwg',
-    'AIzaSyCiclQCO3u4m9st_hjM-9SdWZk81xTwGZo',
-    'AIzaSyBLyqqsKHcfSCcRJS4GrFicUUbkjG9HUgk',
-    'AIzaSyB0-E-EUq55rETQwUIctjwOZ5HFtV2m3f4',
-    'AIzaSyCGZAQ6mkfEm7eh_252ZI8Yw1pi_0eENVU',
-    'AIzaSyApFMt1bcFSdR7COXlQELrmQslCd1kh974',
-    'AIzaSyDqSSyydUQwXMIfhW92bMs37ErJ5GoYOVA',
-    'AIzaSyAJMN0vCdMLiEI2YS5QFhUrbJ2VXJH-vAU',
-    'AIzaSyBk0HxTxoZPHmXdum9jKFPMiM1S38nuTwA',
-];
+// BYOK System - No hardcoded keys
+// All API keys are provided by users via the API Key Manager
 
-let currentKeyIndex = 0;
-const failedKeys = new Set<number>();
-
-// User key rotation state (per user)
-const userKeyState = new Map<string, { keys: string[]; index: number; failed: Set<number> }>();
-
-function getNextWorkingKey(userKeys?: string[]): string {
-    // If user keys provided, use those first
-    if (userKeys && userKeys.length > 0) {
-        // Simple rotation through user keys
-        const index = Math.floor(Math.random() * userKeys.length);
-        return userKeys[index];
-    }
-
-    // Fallback to system keys
-    const startIndex = currentKeyIndex;
-
-    do {
-        if (!failedKeys.has(currentKeyIndex)) {
-            const key = API_KEYS[currentKeyIndex];
-            currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
-            return key;
-        }
-        currentKeyIndex = (currentKeyIndex + 1) % API_KEYS.length;
-    } while (currentKeyIndex !== startIndex);
-
-    // All keys failed, reset and try again
-    failedKeys.clear();
-    const key = API_KEYS[0];
-    currentKeyIndex = 1;
-    return key;
-}
-
-function markKeyAsFailed(keyIndex: number): void {
-    failedKeys.add(keyIndex);
-}
 
 export interface GenerateParams {
     step: PipelineStep;
@@ -227,13 +173,14 @@ const MODELS = [
 export async function generate(params: GenerateParams): Promise<VideoIdea[] | OutlineSection[] | ScriptContent | VideoMetadata> {
     const userKeys = params.userApiKeys || [];
 
-    // Combine user keys (priority) + system keys (fallback)
-    const allKeys = [...userKeys, ...API_KEYS];
+    // BYOK: Only use user-provided keys
+    if (userKeys.length === 0) {
+        throw new Error(
+            'No API keys available. Please add your Gemini API keys in the header menu.'
+        );
+    }
 
-    // Remove duplicates
-    const uniqueKeys = [...new Set(allKeys)];
-
-    console.log(`📦 Total keys available: ${uniqueKeys.length} (${userKeys.length} user + ${API_KEYS.length} system)`);
+    console.log(`📦 BYOK: Using ${userKeys.length} user-provided API keys`);
 
     let lastError: Error | null = null;
     const triedKeys = new Set<string>();
@@ -243,7 +190,7 @@ export async function generate(params: GenerateParams): Promise<VideoIdea[] | Ou
         console.log(`🔄 Trying model: ${modelName}`);
 
         // Try each key for this model
-        for (const apiKey of uniqueKeys) {
+        for (const apiKey of userKeys) {
             // Skip already tried keys for this model
             const keyId = `${modelName}:${apiKey.slice(-8)}`;
             if (triedKeys.has(keyId)) continue;
