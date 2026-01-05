@@ -162,7 +162,7 @@ export function ScriptStep() {
                                         </div>
 
                                         {/* Sections */}
-                                        {script.sections.map((section, index) => (
+                                        {script.sections?.map((section, index) => (
                                             <div key={index} className="border-t border-zinc-800 pt-6">
                                                 <h3 className="text-sm font-medium text-emerald-400 mb-2">
                                                     {section.heading}
@@ -218,13 +218,13 @@ export function ScriptStep() {
                                     </div>
 
                                     {/* Sections Edit */}
-                                    {script.sections.map((section, index) => (
+                                    {(script.sections || []).map((section, index) => (
                                         <div key={index} className="border-t border-zinc-800 pt-6">
                                             <input
                                                 type="text"
                                                 value={section.heading}
                                                 onChange={(e) => {
-                                                    const newSections = [...script.sections];
+                                                    const newSections = [...(script.sections || [])];
                                                     newSections[index] = { ...section, heading: e.target.value };
                                                     updateScript({ sections: newSections });
                                                 }}
@@ -233,7 +233,7 @@ export function ScriptStep() {
                                             <Textarea
                                                 value={section.content}
                                                 onChange={(e) => {
-                                                    const newSections = [...script.sections];
+                                                    const newSections = [...(script.sections || [])];
                                                     newSections[index] = { ...section, content: e.target.value };
                                                     updateScript({ sections: newSections });
                                                 }}

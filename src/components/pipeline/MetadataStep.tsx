@@ -34,6 +34,15 @@ export function MetadataStep() {
     const { user } = useAuth();
     const [copied, setCopied] = useState<string | null>(null);
 
+    // Helper to get string from string | string[]
+    const getDisplayString = (value: string | string[]): string => {
+        return Array.isArray(value) ? value[0] || '' : value;
+    };
+
+    const getFullContent = (value: string | string[]): string => {
+        return Array.isArray(value) ? value.join('\n\n') : value;
+    };
+
     const handleGenerate = async (modifier: string = 'default') => {
         if (!profileId || !script) return;
 
@@ -89,10 +98,11 @@ export function MetadataStep() {
             thumbnailPrompt: metadata.thumbnailPrompt,
             estimatedDuration: metadata.estimatedDuration,
             script: {
-                intro: script.intro,
-                sections: script.sections,
-                outro: script.outro,
-                callToAction: script.callToAction,
+                intro: script.intro || '',
+                sections: script.sections || [],
+                outro: script.outro || '',
+                callToAction: script.callToAction || '',
+                scenes: script.scenes,
             }
         };
 
@@ -167,7 +177,7 @@ export function MetadataStep() {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => handleCopy(metadata.title, 'title')}
+                                    onClick={() => handleCopy(getFullContent(metadata.title), 'title')}
                                     className="text-zinc-400 hover:text-white"
                                 >
                                     {copied === 'title' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -177,12 +187,12 @@ export function MetadataStep() {
                         <CardContent>
                             <input
                                 type="text"
-                                value={metadata.title}
+                                value={getDisplayString(metadata.title)}
                                 onChange={(e) => updateMetadata({ title: e.target.value })}
                                 className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                             <p className="text-xs text-zinc-500 mt-1">
-                                {metadata.title.length}/60 {language === 'vi' ? 'ký tự' : 'characters'}
+                                {getDisplayString(metadata.title).length}/60 {language === 'vi' ? 'ký tự' : 'characters'}
                             </p>
                         </CardContent>
                     </Card>
@@ -255,7 +265,7 @@ export function MetadataStep() {
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => handleCopy(metadata.thumbnailPrompt, 'thumbnail')}
+                                    onClick={() => handleCopy(getFullContent(metadata.thumbnailPrompt), 'thumbnail')}
                                     className="text-zinc-400 hover:text-white"
                                 >
                                     {copied === 'thumbnail' ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
@@ -264,7 +274,7 @@ export function MetadataStep() {
                         </CardHeader>
                         <CardContent>
                             <Textarea
-                                value={metadata.thumbnailPrompt}
+                                value={getFullContent(metadata.thumbnailPrompt)}
                                 onChange={(e) => updateMetadata({ thumbnailPrompt: e.target.value })}
                                 className="min-h-[80px] bg-zinc-800 border-zinc-700 text-zinc-300"
                             />

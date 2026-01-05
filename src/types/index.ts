@@ -23,12 +23,18 @@ export interface PromptProfile {
   };
 }
 
+// ============================================
+// CONTENT TYPES - Flexible for any profile
+// ============================================
+
 export interface VideoIdea {
   id: string;
   title: string;
   hook: string;
   angle: string;
   selected: boolean;
+  // Raw content for complex profiles
+  rawContent?: string;
 }
 
 export interface OutlineSection {
@@ -38,24 +44,115 @@ export interface OutlineSection {
   duration?: string;
 }
 
+// Scene structure for documentary-style content (19 fields)
+export type FeasibilityLevel = 'Easy' | 'Medium' | 'Hard' | 'Very Hard';
+export type SceneBlock = 'I' | 'II' | 'III' | 'IV' | 'V';
+
+export interface Scene {
+  sceneNumber: number;
+  block: SceneBlock;
+  psychologicalObjective: string;
+  narrativeFunction: string;
+  sceneDescription: string;
+  context: string;
+  subject: string;
+  emotionalState: string;
+  motion: string;
+  camera: string;
+  lighting: string;
+  visualSymbolism: string;
+  audioEffect: string;
+  voiceOver: string;
+  feasibilityLevel: FeasibilityLevel;
+  feasibilityNote: string;
+  suggestion?: string;
+  imagePrompt: string;
+  videoPrompt: string;
+}
+
+// Script content - supports both simple and complex formats
 export interface ScriptContent {
-  intro: string;
-  sections: {
+  // Simple format (legacy)
+  intro?: string;
+  sections?: {
     heading: string;
     content: string;
     visualNotes?: string;
   }[];
-  outro: string;
-  callToAction: string;
+  outro?: string;
+  callToAction?: string;
+  // Complex format (scenes)
+  scenes?: Scene[];
+  // Raw content for any format
+  rawContent?: string;
 }
 
 export interface VideoMetadata {
-  title: string;
+  title: string | string[];  // Can be array for multiple options
   description: string;
   tags: string[];
-  thumbnailPrompt: string;
-  estimatedDuration: string;
+  thumbnailPrompt: string | string[];  // Can be array for multiple
+  estimatedDuration?: string;
 }
+
+// ============================================
+// FACTORY MODE TYPES
+// ============================================
+
+export type FactoryItemStatus = 'waiting' | 'processing' | 'cooling' | 'complete' | 'error';
+
+export interface FactoryQueueItem {
+  ideaId: string;
+  ideaTitle: string;
+  status: FactoryItemStatus;
+  progress: number;  // 0-100
+  currentStep?: PipelineStep;
+  result?: {
+    outline: OutlineSection[] | string;
+    script: ScriptContent | string;
+    metadata: VideoMetadata | string;
+  };
+  error?: string;
+}
+
+export interface FactoryState {
+  mode: 'single' | 'factory';
+  isActive: boolean;
+  queue: FactoryQueueItem[];
+  currentIndex: number;
+  cooldownRemaining: number;  // seconds
+  isPaused: boolean;
+}
+
+// ============================================
+// BATCH PROCESSING TYPES
+// ============================================
+
+export interface BatchProgress {
+  step: PipelineStep;
+  currentBatch: number;
+  totalBatches: number;
+  itemsProcessed: number;
+  totalItems: number;
+  isDelaying: boolean;
+  delayRemaining: number;  // ms
+}
+
+// ============================================
+// RATE LIMIT CONSTANTS
+// ============================================
+
+export const RATE_LIMITS = {
+  BATCH_SIZE: 5,            // scenes per batch
+  BATCH_DELAY: 2000,        // ms between batches
+  FACTORY_COOLDOWN: 30000,  // ms between ideas
+  RETRY_DELAY: 5000,        // ms on rate limit error
+  MAX_RETRIES: 3,
+} as const;
+
+// ============================================
+// PIPELINE STATE
+// ============================================
 
 export interface PipelineState {
   // Session
@@ -63,21 +160,28 @@ export interface PipelineState {
   language: Language;
   profileId: string | null;
   topic: string;
-  
+
   // Current Step
   currentStep: PipelineStep;
-  
+
   // Step Data
   ideas: VideoIdea[];
   selectedIdeaId: string | null;
+  selectedIdeaIds: string[];  // For factory mode (multi-select)
   outline: OutlineSection[];
   script: ScriptContent | null;
   metadata: VideoMetadata | null;
-  
+
+  // Factory Mode
+  factory: FactoryState;
+
+  // Batch Progress
+  batchProgress: BatchProgress | null;
+
   // UI State
   isGenerating: boolean;
   error: string | null;
-  
+
   // Actions
   setLanguage: (lang: Language) => void;
   setProfile: (profileId: string) => void;
@@ -85,6 +189,7 @@ export interface PipelineState {
   setCurrentStep: (step: PipelineStep) => void;
   setIdeas: (ideas: VideoIdea[]) => void;
   selectIdea: (ideaId: string) => void;
+  toggleIdeaSelection: (ideaId: string) => void;  // For multi-select
   setOutline: (outline: OutlineSection[]) => void;
   updateOutlineSection: (id: string, section: Partial<OutlineSection>) => void;
   setScript: (script: ScriptContent) => void;
@@ -93,6 +198,16 @@ export interface PipelineState {
   updateMetadata: (metadata: Partial<VideoMetadata>) => void;
   setIsGenerating: (isGenerating: boolean) => void;
   setError: (error: string | null) => void;
+  setBatchProgress: (progress: BatchProgress | null) => void;
+
+  // Factory Actions
+  startFactoryMode: () => void;
+  stopFactoryMode: () => void;
+  pauseFactory: () => void;
+  resumeFactory: () => void;
+  updateFactoryItem: (ideaId: string, update: Partial<FactoryQueueItem>) => void;
+  setCooldown: (seconds: number) => void;
+
   resetPipeline: () => void;
   canProceedToStep: (step: PipelineStep) => boolean;
 }
@@ -108,12 +223,16 @@ export interface GenerateRequest {
     script?: ScriptContent;
   };
   modifier?: 'shorter' | 'longer' | 'funnier' | 'professional' | 'default';
+  batchIndex?: number;  // For batch processing
+  batchSize?: number;
 }
 
 export interface GenerateResponse {
   success: boolean;
-  data?: VideoIdea[] | OutlineSection[] | ScriptContent | VideoMetadata;
+  data?: VideoIdea[] | OutlineSection[] | ScriptContent | VideoMetadata | string;
   error?: string;
+  isBatch?: boolean;
+  batchIndex?: number;
 }
 
 // Step configuration
@@ -139,3 +258,28 @@ export function getPreviousStep(step: PipelineStep): PipelineStep | null {
   const index = getStepIndex(step);
   return index > 0 ? STEP_ORDER[index - 1] : null;
 }
+
+// Scene field keys for export filtering
+export const SCENE_FIELDS = [
+  'sceneNumber',
+  'block',
+  'psychologicalObjective',
+  'narrativeFunction',
+  'sceneDescription',
+  'context',
+  'subject',
+  'emotionalState',
+  'motion',
+  'camera',
+  'lighting',
+  'visualSymbolism',
+  'audioEffect',
+  'voiceOver',
+  'feasibilityLevel',
+  'feasibilityNote',
+  'suggestion',
+  'imagePrompt',
+  'videoPrompt',
+] as const;
+
+export type SceneFieldKey = typeof SCENE_FIELDS[number];

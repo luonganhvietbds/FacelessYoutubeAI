@@ -90,7 +90,8 @@ function buildUserPrompt(params: GenerateParams): string {
 
         case 'metadata':
             if (previousContent?.script) {
-                const scriptSummary = `${previousContent.script.intro.substring(0, 200)}...`;
+                const scriptIntro = previousContent.script.intro || previousContent.script.rawContent || '';
+                const scriptSummary = `${scriptIntro.substring(0, 200)}...`;
                 prompt = isVietnamese
                     ? `Tóm tắt kịch bản:\n${scriptSummary}\n\nTạo metadata tối ưu cho video này. Trả về JSON object với title, description, tags, thumbnailPrompt, estimatedDuration.`
                     : `Script summary:\n${scriptSummary}\n\nGenerate optimized metadata for this video. Return as JSON object with title, description, tags, thumbnailPrompt, estimatedDuration.`;
