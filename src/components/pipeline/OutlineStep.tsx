@@ -48,7 +48,7 @@ export function OutlineStep() {
                 topic,
                 previousContent: { selectedIdea },
                 modifier,
-            }, user?.uid);
+            });
 
             if (result.success && result.data) {
                 setOutline(result.data);

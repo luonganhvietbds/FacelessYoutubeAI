@@ -1,9 +1,15 @@
-// Videlix AI - Generate Service
-// Handles API calls to generate endpoint with user API keys and batch processing
+// Videlix AI - Generate Service (Simplified)
+// Uses localStorage API key instead of Firestore
 
-import { getActiveUserApiKeys } from '@/lib/api-keys/keyStore';
-import { BatchProgress, PipelineStep, RATE_LIMITS } from '@/types';
-import { processBatches, retryWithBackoff, delay } from '@/lib/utils/batchProcessor';
+import { getApiKey } from '@/lib/api-keys/simpleKeyStore';
+import { callGemini } from '@/lib/services/geminiService';
+import { PipelineStep, VideoIdea, OutlineSection, ScriptContent, VideoMetadata } from '@/types';
+import { getProfileById, FirebaseProfile } from '@/lib/firebase/firestore';
+import profiles from '@/lib/prompts/profiles.json';
+
+// Cache for Firebase profiles
+const profileCache = new Map<string, { profile: FirebaseProfile | null; timestamp: number }>();
+const CACHE_TTL = 60000;
 
 interface GenerateRequest {
     step: PipelineStep;
@@ -11,13 +17,11 @@ interface GenerateRequest {
     language: 'en' | 'vi';
     topic: string;
     previousContent?: {
-        selectedIdea?: unknown;
-        outline?: unknown;
-        script?: unknown;
+        selectedIdea?: VideoIdea;
+        outline?: OutlineSection[];
+        script?: ScriptContent;
     };
     modifier?: string;
-    batchIndex?: number;
-    totalBatches?: number;
 }
 
 interface GenerateResponse<T> {
@@ -26,184 +30,196 @@ interface GenerateResponse<T> {
     error?: string;
 }
 
-interface GenerateOptions {
-    onProgress?: (progress: BatchProgress) => void;
-    userId?: string | null;
+/**
+ * Get system prompt from profile
+ */
+async function getSystemPrompt(profileId: string, step: PipelineStep, language: 'en' | 'vi'): Promise<string> {
+    try {
+        const cached = profileCache.get(profileId);
+        const now = Date.now();
+
+        let firebaseProfile: FirebaseProfile | null = null;
+
+        if (cached && now - cached.timestamp < CACHE_TTL) {
+            firebaseProfile = cached.profile;
+        } else {
+            firebaseProfile = await getProfileById(profileId);
+            profileCache.set(profileId, { profile: firebaseProfile, timestamp: now });
+        }
+
+        if (firebaseProfile?.prompts?.[step]) {
+            return firebaseProfile.prompts[step][language];
+        }
+    } catch (error) {
+        console.warn('Failed to fetch profile from Firestore, using fallback:', error);
+    }
+
+    // Fallback to static JSON
+    const profile = profiles.profiles.find(p => p.id === profileId);
+    if (!profile) {
+        throw new Error(`Profile not found: ${profileId}`);
+    }
+    return profile.prompts[step][language];
 }
 
 /**
- * Call the generate API with user's API keys
+ * Build user prompt for AI
+ */
+function buildUserPrompt(params: GenerateRequest): string {
+    const { step, topic, previousContent, modifier, language } = params;
+    const isVietnamese = language === 'vi';
+
+    let prompt = '';
+
+    switch (step) {
+        case 'idea':
+            prompt = isVietnamese
+                ? `Chủ đề: ${topic}\n\nTạo 5 ý tưởng video độc đáo cho chủ đề này. Trả về JSON array.`
+                : `Topic: ${topic}\n\nGenerate 5 unique video ideas for this topic. Return as JSON array.`;
+            break;
+
+        case 'outline':
+            if (previousContent?.selectedIdea) {
+                const idea = previousContent.selectedIdea;
+                prompt = isVietnamese
+                    ? `Ý tưởng đã chọn:\nTiêu đề: ${idea.title}\nHook: ${idea.hook}\nGóc nhìn: ${idea.angle}\n\nTạo dàn ý chi tiết cho video này. Trả về JSON array của các sections.`
+                    : `Selected Idea:\nTitle: ${idea.title}\nHook: ${idea.hook}\nAngle: ${idea.angle}\n\nCreate a detailed outline for this video. Return as JSON array of sections.`;
+            }
+            break;
+
+        case 'script':
+            if (previousContent?.outline) {
+                const outlineText = previousContent.outline
+                    .map(s => `${s.title}:\n${s.points.map(p => `  - ${p}`).join('\n')}`)
+                    .join('\n\n');
+                prompt = isVietnamese
+                    ? `Dàn ý:\n${outlineText}\n\nViết kịch bản đầy đủ dựa trên dàn ý này. Trả về JSON object với intro, sections, outro, callToAction.`
+                    : `Outline:\n${outlineText}\n\nWrite a complete script based on this outline. Return as JSON object with intro, sections, outro, callToAction.`;
+            }
+            break;
+
+        case 'metadata':
+            if (previousContent?.script) {
+                const scriptIntro = previousContent.script.intro || previousContent.script.rawContent || '';
+                const scriptSummary = `${scriptIntro.substring(0, 200)}...`;
+                prompt = isVietnamese
+                    ? `Tóm tắt kịch bản:\n${scriptSummary}\n\nTạo metadata tối ưu cho video này. Trả về JSON object với title, description, tags, thumbnailPrompt, estimatedDuration.`
+                    : `Script summary:\n${scriptSummary}\n\nGenerate optimized metadata for this video. Return as JSON object with title, description, tags, thumbnailPrompt, estimatedDuration.`;
+            }
+            break;
+    }
+
+    // Add modifier instructions
+    if (modifier && modifier !== 'default') {
+        const modifierText: Record<string, string> = {
+            shorter: isVietnamese ? 'Làm ngắn gọn hơn, súc tích hơn.' : 'Make it shorter and more concise.',
+            longer: isVietnamese ? 'Làm chi tiết hơn, đầy đủ hơn.' : 'Make it longer and more detailed.',
+            funnier: isVietnamese ? 'Thêm yếu tố hài hước, vui nhộn.' : 'Add more humor and fun elements.',
+            professional: isVietnamese ? 'Làm chuyên nghiệp hơn, nghiêm túc hơn.' : 'Make it more professional and formal.',
+        };
+        prompt += `\n\n${modifierText[modifier] || ''}`;
+    }
+
+    return prompt;
+}
+
+/**
+ * Parse AI response based on step
+ */
+function parseStepResponse<T>(response: unknown, step: PipelineStep): T {
+    switch (step) {
+        case 'idea':
+            if (!Array.isArray(response)) throw new Error('Ideas must be an array');
+            return response.map((item: Partial<VideoIdea>, index: number) => ({
+                id: item.id || `idea_${index}`,
+                title: item.title || '',
+                hook: item.hook || '',
+                angle: item.angle || '',
+                selected: false,
+            })) as T;
+
+        case 'outline':
+            if (!Array.isArray(response)) throw new Error('Outline must be an array');
+            return response.map((section: Partial<OutlineSection>, index: number) => ({
+                id: section.id || `section_${index}`,
+                title: section.title || `Section ${index + 1}`,
+                points: Array.isArray(section.points) ? section.points : [],
+            })) as T;
+
+        case 'script':
+            return {
+                intro: (response as Partial<ScriptContent>).intro || '',
+                sections: (response as Partial<ScriptContent>).sections?.map((s, i) => ({
+                    heading: s?.heading || `Part ${i + 1}`,
+                    content: s?.content || '',
+                    visualNotes: s?.visualNotes,
+                })) || [],
+                outro: (response as Partial<ScriptContent>).outro || '',
+                callToAction: (response as Partial<ScriptContent>).callToAction || '',
+                rawContent: (response as Partial<ScriptContent>).rawContent,
+                scenes: (response as Partial<ScriptContent>).scenes,
+            } as T;
+
+        case 'metadata':
+            return {
+                title: (response as Partial<VideoMetadata>).title || '',
+                description: (response as Partial<VideoMetadata>).description || '',
+                tags: Array.isArray((response as Partial<VideoMetadata>).tags)
+                    ? (response as Partial<VideoMetadata>).tags
+                    : [],
+                thumbnailPrompt: (response as Partial<VideoMetadata>).thumbnailPrompt || '',
+                estimatedDuration: (response as Partial<VideoMetadata>).estimatedDuration || '',
+            } as T;
+
+        default:
+            throw new Error(`Unknown step: ${step}`);
+    }
+}
+
+/**
+ * Generate content using Gemini AI
+ * API key is automatically retrieved from localStorage
  */
 export async function generateContent<T>(
-    request: GenerateRequest,
-    userId?: string | null
+    request: GenerateRequest
 ): Promise<GenerateResponse<T>> {
     try {
-        // Get user's active API keys if logged in
-        let userApiKeys: string[] = [];
+        // Get API key from localStorage
+        const apiKey = getApiKey();
 
-        console.log('🔍 [generateContent] userId:', userId);
-
-        if (userId) {
-            try {
-                userApiKeys = await getActiveUserApiKeys(userId);
-                console.log(`📦 [generateContent] Found ${userApiKeys.length} active API keys for user ${userId}`);
-                if (userApiKeys.length > 0) {
-                    console.log(`  🔑 First key ends with: ...${userApiKeys[0].slice(-8)}`);
-                }
-            } catch (error) {
-                console.error('❌ [generateContent] Failed to get user API keys:', error);
-            }
-        } else {
-            console.warn('⚠️ [generateContent] No userId provided - cannot fetch API keys');
+        if (!apiKey) {
+            return {
+                success: false,
+                error: 'No API Key found. Please add your Gemini API Key in the header.',
+            };
         }
 
-        if (userApiKeys.length === 0) {
-            console.error('❌ [generateContent] No API keys to send to generator!');
-        }
+        console.log(`🚀 Generating ${request.step} with API key from localStorage`);
 
-        const response = await fetch('/api/generate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                ...request,
-                userApiKeys, // Include user's API keys
-            }),
+        // Get prompts
+        const systemPrompt = await getSystemPrompt(request.profileId, request.step, request.language);
+        const userPrompt = buildUserPrompt(request);
+
+        // Call Gemini
+        const response = await callGemini<unknown>({
+            systemPrompt,
+            userPrompt,
+            apiKey,
         });
 
-        const data = await response.json();
-        return data as GenerateResponse<T>;
+        // Parse response
+        const data = parseStepResponse<T>(response, request.step);
+
+        return {
+            success: true,
+            data,
+        };
 
     } catch (error) {
+        console.error('Generate error:', error);
         return {
             success: false,
-            error: error instanceof Error ? error.message : 'Network error',
+            error: error instanceof Error ? error.message : 'Unknown error occurred',
         };
     }
-}
-
-/**
- * Generate content with retry on rate limit
- */
-export async function generateWithRetry<T>(
-    request: GenerateRequest,
-    userId?: string | null
-): Promise<GenerateResponse<T>> {
-    return retryWithBackoff(
-        async () => {
-            const result = await generateContent<T>(request, userId);
-            if (!result.success && result.error?.includes('429')) {
-                throw new Error(result.error);
-            }
-            return result;
-        },
-        {
-            maxRetries: RATE_LIMITS.MAX_RETRIES,
-            initialDelay: RATE_LIMITS.RETRY_DELAY,
-            onRetry: (attempt, error) => {
-                console.log(`⏳ API retry ${attempt}: ${error.message}`);
-            },
-        }
-    );
-}
-
-/**
- * Generate scenes in batches with rate limit protection
- * Used for outline and script steps with many scenes
- */
-export async function generateInBatches<T>(
-    scenePrompts: string[],
-    baseRequest: Omit<GenerateRequest, 'batchIndex' | 'totalBatches'>,
-    options: GenerateOptions = {}
-): Promise<T[]> {
-    const { onProgress, userId } = options;
-    const step = baseRequest.step;
-
-    console.log(`📦 Generating ${scenePrompts.length} items in batches of ${RATE_LIMITS.BATCH_SIZE}`);
-
-    const results = await processBatches<string, T>(
-        scenePrompts,
-        async (batch, batchIndex) => {
-            const batchResults: T[] = [];
-
-            for (const prompt of batch) {
-                const response = await generateWithRetry<T>({
-                    ...baseRequest,
-                    topic: prompt, // Each scene prompt as topic
-                    batchIndex,
-                    totalBatches: Math.ceil(scenePrompts.length / RATE_LIMITS.BATCH_SIZE),
-                }, userId);
-
-                if (response.success && response.data) {
-                    batchResults.push(response.data);
-                } else {
-                    console.error(`Batch ${batchIndex} item failed:`, response.error);
-                }
-            }
-
-            return batchResults;
-        },
-        {
-            batchSize: RATE_LIMITS.BATCH_SIZE,
-            delayMs: RATE_LIMITS.BATCH_DELAY,
-            step,
-            onProgress,
-            onBatchComplete: (batchIndex) => {
-                console.log(`✅ Batch ${batchIndex + 1} complete`);
-            },
-        }
-    );
-
-    return results;
-}
-
-/**
- * Process multiple ideas in factory mode with cooldown
- */
-export async function processFactoryIdeas<T>(
-    ideas: { id: string; title: string }[],
-    processIdea: (idea: { id: string; title: string }) => Promise<T>,
-    options: {
-        onIdeaStart?: (index: number, idea: { id: string; title: string }) => void;
-        onIdeaComplete?: (index: number, result: T) => void;
-        onCooldown?: (remaining: number) => void;
-        isPaused?: () => boolean;
-    } = {}
-): Promise<T[]> {
-    const results: T[] = [];
-    const { onIdeaStart, onIdeaComplete, onCooldown, isPaused = () => false } = options;
-
-    console.log(`🏭 Factory mode: Processing ${ideas.length} ideas`);
-
-    for (let i = 0; i < ideas.length; i++) {
-        // Check pause
-        while (isPaused()) {
-            await delay(500);
-        }
-
-        const idea = ideas[i];
-        console.log(`🔄 Processing idea ${i + 1}/${ideas.length}: ${idea.title}`);
-
-        onIdeaStart?.(i, idea);
-
-        const result = await processIdea(idea);
-        results.push(result);
-
-        onIdeaComplete?.(i, result);
-
-        // Cooldown between ideas (except after last)
-        if (i < ideas.length - 1) {
-            console.log(`⏸️ Cooling down for ${RATE_LIMITS.FACTORY_COOLDOWN / 1000}s...`);
-            let remaining = RATE_LIMITS.FACTORY_COOLDOWN;
-            while (remaining > 0) {
-                onCooldown?.(remaining);
-                await delay(1000);
-                remaining -= 1000;
-            }
-            onCooldown?.(0);
-        }
-    }
-
-    console.log(`✅ Factory complete: ${results.length} ideas processed`);
-    return results;
 }

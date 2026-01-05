@@ -65,7 +65,7 @@ export function IdeaStep() {
                 language,
                 topic: localTopic,
                 modifier,
-            }, user?.uid);
+            });
 
             if (result.success && result.data) {
                 setIdeas(result.data);

@@ -49,7 +49,7 @@ export function ScriptStep() {
                 topic,
                 previousContent: { outline },
                 modifier,
-            }, user?.uid);
+            });
 
             if (result.success && result.data) {
                 setScript(result.data);

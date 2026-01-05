@@ -57,7 +57,7 @@ export function MetadataStep() {
                 topic,
                 previousContent: { script },
                 modifier,
-            }, user?.uid);
+            });
 
             if (result.success && result.data) {
                 setMetadata(result.data);
