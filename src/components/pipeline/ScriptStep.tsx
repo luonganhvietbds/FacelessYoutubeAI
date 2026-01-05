@@ -12,6 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { usePipelineStore } from '@/lib/store/pipelineStore';
 import { RegenerateButton } from '@/components/controls/RegenerateButton';
+import { ExportPanel } from '@/components/pipeline/ExportPanel';
 import { useAuth } from '@/hooks/useAuth';
 import { generateContent } from '@/lib/services/generateService';
 import { ScriptContent } from '@/types';
@@ -269,6 +270,9 @@ export function ScriptStep() {
                             </Card>
                         </TabsContent>
                     </Tabs>
+
+                    {/* Export Panel */}
+                    <ExportPanel script={script} language={language} />
 
                     {/* Proceed Button */}
                     <div className="flex justify-end pt-4">
