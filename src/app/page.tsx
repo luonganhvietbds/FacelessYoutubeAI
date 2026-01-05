@@ -12,6 +12,7 @@ import { IdeaStep } from '@/components/pipeline/IdeaStep';
 import { OutlineStep } from '@/components/pipeline/OutlineStep';
 import { ScriptStep } from '@/components/pipeline/ScriptStep';
 import { MetadataStep } from '@/components/pipeline/MetadataStep';
+import { FactoryQueuePanel } from '@/components/pipeline/FactoryQueuePanel';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 
@@ -145,6 +146,8 @@ export default function Home() {
         <main className="flex-1 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="p-6 max-w-4xl mx-auto">
+              {/* Factory Queue Panel */}
+              <FactoryQueuePanel />
               {renderCurrentStep()}
             </div>
           </ScrollArea>
