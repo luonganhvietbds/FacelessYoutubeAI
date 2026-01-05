@@ -68,11 +68,26 @@ export async function getUserApiKeys(userId: string): Promise<UserApiKey[]> {
  * Get only active API keys for a user (for use in generator)
  */
 export async function getActiveUserApiKeys(userId: string): Promise<string[]> {
+    console.log(`🔍 [getActiveUserApiKeys] Fetching keys for userId: ${userId}`);
+
     const keysRef = collection(db, COLLECTION, userId, 'keys');
+
+    // First, get ALL keys to debug status issues
+    const allKeysSnapshot = await getDocs(keysRef);
+    console.log(`📦 [getActiveUserApiKeys] Total keys in Firestore: ${allKeysSnapshot.size}`);
+    allKeysSnapshot.docs.forEach((doc, i) => {
+        const data = doc.data();
+        console.log(`  Key ${i + 1}: status="${data.status}", maskedKey="${data.maskedKey}"`);
+    });
+
+    // Now get only active keys
     const q = query(keysRef, where('status', '==', 'active'));
     const snapshot = await getDocs(q);
 
-    return snapshot.docs.map(doc => doc.data().key as string);
+    console.log(`✅ [getActiveUserApiKeys] Active keys found: ${snapshot.size}`);
+
+    const keys = snapshot.docs.map(doc => doc.data().key as string);
+    return keys;
 }
 
 /**

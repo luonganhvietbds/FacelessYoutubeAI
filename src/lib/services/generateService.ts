@@ -42,13 +42,24 @@ export async function generateContent<T>(
         // Get user's active API keys if logged in
         let userApiKeys: string[] = [];
 
+        console.log('🔍 [generateContent] userId:', userId);
+
         if (userId) {
             try {
                 userApiKeys = await getActiveUserApiKeys(userId);
-                console.log(`📦 Using ${userApiKeys.length} user API keys`);
+                console.log(`📦 [generateContent] Found ${userApiKeys.length} active API keys for user ${userId}`);
+                if (userApiKeys.length > 0) {
+                    console.log(`  🔑 First key ends with: ...${userApiKeys[0].slice(-8)}`);
+                }
             } catch (error) {
-                console.warn('Failed to get user API keys:', error);
+                console.error('❌ [generateContent] Failed to get user API keys:', error);
             }
+        } else {
+            console.warn('⚠️ [generateContent] No userId provided - cannot fetch API keys');
+        }
+
+        if (userApiKeys.length === 0) {
+            console.error('❌ [generateContent] No API keys to send to generator!');
         }
 
         const response = await fetch('/api/generate', {
