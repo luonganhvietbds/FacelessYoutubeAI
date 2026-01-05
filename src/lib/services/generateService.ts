@@ -140,11 +140,26 @@ function parseStepResponse<T>(response: unknown, step: PipelineStep): T {
 
         case 'outline':
             if (!Array.isArray(response)) throw new Error('Outline must be an array');
-            return response.map((section: Partial<OutlineSection>, index: number) => ({
-                id: section.id || `section_${index}`,
-                title: section.title || `Section ${index + 1}`,
-                points: Array.isArray(section.points) ? section.points : [],
-            })) as T;
+            return response.map((section: Record<string, unknown>, index: number) => {
+                // Handle both formats: {title, points} OR {heading, content}
+                const title = (section.title || section.heading || `Section ${index + 1}`) as string;
+                let points: string[] = [];
+
+                if (Array.isArray(section.points)) {
+                    points = section.points as string[];
+                } else if (typeof section.content === 'string') {
+                    // Split content into points if it's a string
+                    points = section.content.split('\n').filter((p: string) => p.trim());
+                } else if (Array.isArray(section.content)) {
+                    points = section.content as string[];
+                }
+
+                return {
+                    id: (section.id as string) || `section_${index}`,
+                    title,
+                    points,
+                };
+            }) as T;
 
         case 'script':
             return {
